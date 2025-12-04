@@ -1,6 +1,6 @@
 [project]
 name = "nonebot-plugin-terralink"
-version = "0.3.0"
+version = "0.3.1"
 description = "实现泰拉瑞亚 TModLoader 服务器与 QQ 群双向互通的 NoneBot2 插件"
 authors = [
     { name = "newcovid", email = "280310454@qq.com" },
@@ -24,5 +24,7 @@ Documentation = "https://github.com/newcovid/nonebot-plugin-terralink#readme"
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["nonebot_plugin_terralink"]
+# [修复] 使用 find 指令自动查找子包，防止 core/services/matchers 丢失
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nonebot_plugin_terralink", "nonebot_plugin_terralink.*"]
