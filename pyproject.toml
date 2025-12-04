@@ -1,0 +1,28 @@
+[project]
+name = "nonebot-plugin-terralink"
+version = "0.1.0"
+description = "实现泰拉瑞亚 TModLoader 服务器与 QQ 群双向互通的 NoneBot2 插件"
+authors = [
+    { name = "newcovid", email = "280310454@qq.com" },
+]
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "GPL-3.0" }
+keywords = ["nonebot", "terraria", "tmodloader", "bridge", "server", "websocket"]
+dependencies = [
+    "nonebot2>=2.3.0",
+    "nonebot-adapter-onebot>=2.3.0",
+    "websockets>=11.0",
+    "pydantic>=1.10.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/newcovid/nonebot-plugin-terralink"
+Documentation = "https://github.com/newcovid/nonebot-plugin-terralink#readme"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["nonebot_plugin_terralink"]
