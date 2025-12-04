@@ -17,5 +17,8 @@ __plugin_meta__ = PluginMetadata(
         "【查询指令】\n"
         "/list, /tps, /boss, /inv, /search, /query, /help"
     ),
+    type="application",
+    homepage="https://github.com/newcovid/nonebot-plugin-terralink",
     config=Config,
+    supported_adapters={"~onebot.v11"},
 )
