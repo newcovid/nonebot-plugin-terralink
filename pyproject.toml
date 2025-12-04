@@ -1,6 +1,6 @@
 [project]
 name = "nonebot-plugin-terralink"
-version = "0.1.0"
+version = "0.3.0"
 description = "实现泰拉瑞亚 TModLoader 服务器与 QQ 群双向互通的 NoneBot2 插件"
 authors = [
     { name = "newcovid", email = "280310454@qq.com" },
