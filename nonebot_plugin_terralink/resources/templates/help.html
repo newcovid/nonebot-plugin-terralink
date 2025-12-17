@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="panel-header">
+        <span class="panel-title">📖 指令列表</span>
+    </div>
+
+    <table class="cmd-table">
+        {% for item in data %}
+        <tr>
+            <td class="cmd-name">
+                <!-- 修正 key: cmd -> name -->
+                {{ item.name }}
+                
+                <!-- 如果是管理员指令，显示标记 -->
+                {% if item.permission == 'Admin' %}
+                    <span style="font-size: 10px; color: #ff6b6b; border: 1px solid #ff6b6b; border-radius: 3px; padding: 1px 3px; margin-left: 5px; vertical-align: middle;">Admin</span>
+                {% endif %}
+            </td>
+            <td style="color: #ddd;">
+                <!-- 修正 key: desc -> description -->
+                <div style="font-weight: bold; color: #eee;">{{ item.description }}</div>
+                
+                <!-- 显示用法 -->
+                {% if item.usage %}
+                <div style="font-size: 12px; color: #aaa; margin-top: 2px; font-family: monospace;">
+                    用法: {{ item.usage }}
+                </div>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    
+    <div style="margin-top: 10px; font-size: 12px; color: #aaa; text-align: center;">
+        提示: 带 <Admin> 标记的指令仅管理员可用
+    </div>
+{% endblock %}

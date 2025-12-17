@@ -44,4 +44,5 @@ async def _(bot: Bot, event: GroupMessageEvent):
     user_name = event.sender.card or event.sender.nickname or str(event.user_id)
 
     # 4. 发送 Chat 包
+    # 这里不需要 execute_command 等待回复，因为聊天是推流式的
     await session.send_chat(user_name, text)

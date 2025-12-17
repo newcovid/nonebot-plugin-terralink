@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="panel-header">
+        <span class="panel-title">👥 在线玩家</span>
+        <span style="font-size: 16px;">{{ data.count }} / {{ data.max }}</span>
+    </div>
+
+    {% if data.players %}
+        <div class="grid-container">
+            {% for player in data.players %}
+            <div class="player-chip">
+                <!-- 简单的人物图标占位 -->
+                <span>👤</span> 
+                <span>{{ player }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 20px; color: #aaa;">
+            当前服务器空无一人...
+        </div>
+    {% endif %}
+{% endblock %}

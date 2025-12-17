@@ -1,0 +1,500 @@
+/* Terraria UI Style Clone */
+@font-face {
+    font-family: 'AndyBold';
+    src: local('Andy Bold'), local('Arial');
+}
+
+html {
+    width: fit-content;
+    height: fit-content;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: transparent;
+    font-family: 'AndyBold', 'Microsoft YaHei', sans-serif;
+    color: white;
+    display: inline-block;
+}
+
+/* --- 面板基础 --- */
+.tml-panel {
+    background-color: #3e447a;
+    border: 4px solid #666eab;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    padding: 15px;
+
+    min-width: 500px;
+
+    /* [Fix] 关键属性：让容器宽度自适应内容 */
+    /* 当内容较少时(如List)，图片变窄；当内容较多时(如Recipe)，图片变宽 */
+    width: fit-content;
+
+    /* 配合 selector 截图，确保无背景溢出 */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-sizing: border-box;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #555c91;
+    padding-bottom: 8px;
+    min-width: 300px;
+}
+
+.panel-title {
+    font-size: 24px;
+    font-weight: bold;
+    text-shadow: 2px 2px 0px #000;
+    white-space: nowrap;
+}
+
+.section-title {
+    font-size: 18px;
+    color: #eee;
+    margin: 10px 0 5px 0;
+    border-bottom: 2px solid #555c91;
+    padding-bottom: 4px;
+    font-weight: bold;
+}
+
+/* --- 物品槽 (Item Slot) --- */
+.item-slot {
+    width: 48px;
+    height: 48px;
+    background-color: #4d5791;
+    border: 2px solid #33385e;
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+/* [Update] 集成裁剪逻辑的通用图标类 */
+.item-icon {
+    max-width: 80%;
+    max-height: 80%;
+    object-fit: contain;
+    image-rendering: pixelated;
+
+    /* 定义默认帧数为 1 */
+    --frame-cnt: 1;
+    /* 核心裁剪逻辑：根据帧数计算显示区域 */
+    object-view-box: inset(0 0 calc(100% - 100% / var(--frame-cnt)) 0);
+}
+
+.item-stack {
+    position: absolute;
+    bottom: 2px;
+    left: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+    line-height: 1;
+    z-index: 10;
+}
+
+.item-name-tag {
+    font-size: 12px;
+    text-align: center;
+    color: #ddd;
+    margin-top: 4px;
+    width: 80px;
+    line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* --- 背包布局 (Inventory) [Modified] --- */
+.inventory-layout {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+    align-items: flex-start;
+    /* 顶部对齐 */
+}
+
+.inventory-main-grid {
+    display: grid;
+    /* 10列，每列自适应 */
+    grid-template-columns: repeat(10, min-content);
+    gap: 4px;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 8px;
+    border-radius: 6px;
+}
+
+/* [Modified] 右侧侧边栏改为横向 Flex */
+.inventory-sidebar {
+    display: flex;
+    flex-direction: row;
+    /* 改为水平排列 */
+    gap: 10px;
+    flex-wrap: wrap;
+    /* 如果内容实在太多，允许换行 */
+}
+
+/* [New] 侧边栏的列 (装备列、杂项列) */
+.sidebar-column {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    /* 确保每一列内部的物品紧凑排列 */
+    background-color: rgba(0, 0, 0, 0.1);
+    /* 轻微背景区分 */
+    padding: 5px;
+    border-radius: 6px;
+    height: fit-content;
+}
+
+/* --- 详情页布局 (Detail) --- */
+.detail-top {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+}
+
+.detail-desc-box {
+    margin-top: 10px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid #555c91;
+    border-radius: 4px;
+    color: #ccc;
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stats-table td {
+    padding: 4px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-name {
+    color: #aaa;
+    width: 40%;
+}
+
+.stat-val {
+    color: #fff;
+    font-weight: bold;
+    text-align: right;
+}
+
+.source-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    background: rgba(43, 48, 85, 0.8);
+    border: 1px solid #ff6b6b;
+    border-radius: 15px;
+    font-size: 13px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+.recipe-row {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 5px;
+    border-radius: 4px;
+    gap: 10px;
+}
+
+.recipe-ingredients {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    flex: 1;
+}
+
+.recipe-arrow {
+    color: #888;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* --- 统计网格 (TPS/List) --- */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.stat-card {
+    background-color: #2b3055;
+    padding: 10px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #555c91;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 4px;
+}
+
+/* 状态颜色类 (TPS) */
+.status-good {
+    color: #8aff8a;
+}
+
+.status-bad {
+    color: #ff6b6b;
+}
+
+/* --- 列表与搜索 --- */
+.grid-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.player-chip {
+    background: #4d5791;
+    padding: 5px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid #666eab;
+}
+
+/* --- 帮助菜单 --- */
+.cmd-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.cmd-table td {
+    padding: 8px;
+    border-bottom: 1px solid #555c91;
+    vertical-align: top;
+}
+
+.cmd-name {
+    font-weight: bold;
+    color: #ffce45;
+    white-space: nowrap;
+}
+
+/* === 树状图 (Standard Genealogy Tree CSS) === */
+.tree-container {
+    padding: 20px 0;
+    overflow-x: auto;
+    text-align: center;
+}
+
+.tree ul {
+    padding-top: 20px;
+    position: relative;
+    transition: all 0.5s;
+    display: flex;
+    justify-content: center;
+    margin: 0;
+    padding-left: 0;
+}
+
+.tree li {
+    float: left;
+    text-align: center;
+    list-style-type: none;
+    position: relative;
+    padding: 20px 5px 0 5px;
+    transition: all 0.5s;
+}
+
+.tree li::before,
+.tree li::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 50%;
+    border-top: 2px solid #888;
+    width: 50%;
+    height: 20px;
+}
+
+.tree li::after {
+    right: auto;
+    left: 50%;
+    border-left: 2px solid #888;
+}
+
+.tree li:only-child::after,
+.tree li:only-child::before {
+    display: none;
+}
+
+.tree li:only-child {
+    padding-top: 0;
+}
+
+.tree li:first-child::before {
+    border: 0 none;
+}
+
+.tree li:first-child::after {
+    border-radius: 5px 0 0 0;
+}
+
+.tree li:last-child::before {
+    border-right: 2px solid #888;
+    border-radius: 0 5px 0 0;
+}
+
+.tree li:last-child::after {
+    border: 0 none;
+}
+
+.tree ul ul::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    border-left: 2px solid #888;
+    width: 0;
+    height: 20px;
+}
+
+.node-wrapper {
+    display: inline-block;
+    padding: 5px;
+    border: 1px solid #555c91;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 2;
+}
+
+.station-mini {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #2b3055;
+    border: 1px solid #ffce45;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.station-mini img {
+    width: 16px;
+    height: 16px;
+}
+
+.node-condition {
+    font-size: 10px;
+    color: #ffce45;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 1px 4px;
+    border-radius: 4px;
+    margin-top: 4px;
+    max-width: 80px;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* --- 用途栏 --- */
+.usage-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 1px solid #555c91;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 8px;
+    gap: 15px;
+}
+
+.usage-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+    border-right: 2px solid rgba(255, 255, 255, 0.1);
+    padding-right: 15px;
+}
+
+.usage-middle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    color: #aaa;
+}
+
+.usage-station-icon {
+    width: 32px;
+    height: 32px;
+    background: #2b3055;
+    border: 1px solid #666;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.usage-ingredients {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.usage-condition {
+    font-size: 11px;
+    color: #ffce45;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+    text-align: center;
+}
+
+/* 通用 */
+.col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}

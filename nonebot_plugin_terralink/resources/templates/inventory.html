@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros with context %}
+
+{% block content %}
+<div class="panel-header">
+    <span class="panel-title">🎒 {{ data.playerName }} 的背包</span>
+</div>
+
+<!-- [Layout Update] 优化布局，左侧主背包，右侧多列并排 -->
+<div class="inventory-layout">
+
+    <!-- 左侧：主背包 (10x5 Grid) -->
+    <div style="flex: 1;">
+        <div class="section-title" style="margin-top: 0;">物品栏</div>
+        <div class="inventory-main-grid">
+            {% for item in data.inventory %}
+                {# 如果是空槽位(id=0)，也渲染一个空格子保持网格整齐 #}
+                {% if item.id == 0 %}
+                <div class="item-slot" style="background-color: rgba(0,0,0,0.1); border-color: rgba(255,255,255,0.05);">
+                </div>
+                {% else %}
+                {{ macros.item_slot(item) }}
+                {% endif %}
+            {% endfor %}
+
+            {# 补齐50个格子 (如果数据返回不足50) #}
+            {% if data.inventory|length < 50 %} 
+                {% for i in range(50 - data.inventory|length) %} 
+                <div class="item-slot" style="background-color: rgba(0,0,0,0.1); border-color: rgba(255,255,255,0.05);"></div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 右侧：装备与杂项 (横向排列) -->
+    <div class="inventory-sidebar">
+
+        <!-- Column 1: 装备栏 (Armor & Accessories) -->
+        {% if data.armor %}
+        <div class="sidebar-column">
+            <div class="section-title" style="margin-top: 0;">装备</div>
+            
+            <!-- 使用 sidebar-column 内部默认是 column 垂直排列，符合游戏 UI -->
+            {% for item in data.armor %}
+                {{ macros.item_slot(item) }}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Column 2: 杂项/钱币 (Misc) -->
+        {% if data.misc %}
+        <div class="sidebar-column">
+            <div class="section-title" style="margin-top: 0;">杂项/钱币</div>
+            
+            {% for item in data.misc %}
+                {{ macros.item_slot(item) }}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- 底部容器 (保持不变) -->
+{% if data.piggy or data.vault %}
+<div class="section-title">存储容器</div>
+<div class="row">
+    {% if data.piggy %}
+    <div class="col" style="background: rgba(255,100,100,0.1); padding: 5px; border-radius: 4px;">
+        <span style="font-size: 12px; text-align: center;">🐷 猪猪存钱罐</span>
+        <div class="grid-container" style="justify-content: center;">
+            {% for item in data.piggy %}
+            {{ macros.item_slot(item) }}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if data.vault %}
+    <div class="col" style="background: rgba(100,100,255,0.1); padding: 5px; border-radius: 4px;">
+        <span style="font-size: 12px; text-align: center;">🔒 虚空保险库</span>
+        <div class="grid-container" style="justify-content: center;">
+            {% for item in data.vault %}
+            {{ macros.item_slot(item) }}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

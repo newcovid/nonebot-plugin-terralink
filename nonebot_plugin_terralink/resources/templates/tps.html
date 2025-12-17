@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="panel-header">
+        <span class="panel-title">📊 服务器状态</span>
+        <span style="font-size: 12px; color: #aaa;">{{ data.version }}</span>
+    </div>
+
+    <div class="stat-grid">
+        <!-- TPS -->
+        <div class="stat-card">
+            <!-- [Fix] 使用 class 切换颜色，避免内联 style 报错 -->
+            <span class="stat-value {{ 'status-good' if data.tps >= 50 else 'status-bad' }}">
+                {{ "%.1f"|format(data.tps) }}
+            </span>
+            <span class="stat-label">TPS</span>
+        </div>
+
+        <!-- 在线人数 -->
+        <div class="stat-card">
+            <span class="stat-value">{{ data.onlineCount }}</span>
+            <span class="stat-label">在线人数</span>
+        </div>
+
+        <!-- 实体 -->
+        <div class="stat-card">
+            <span class="stat-value">{{ data.npcCount }}</span>
+            <span class="stat-label">NPC / 怪物</span>
+        </div>
+        
+        <!-- 掉落物 -->
+        <div class="stat-card">
+            <span class="stat-value">{{ data.itemCount }}</span>
+            <span class="stat-label">掉落物</span>
+        </div>
+
+        <!-- 内存 -->
+        <div class="stat-card">
+            <span class="stat-value">{{ "%.0f"|format(data.memoryMb) }} MB</span>
+            <span class="stat-label">物理内存</span>
+        </div>
+
+        <!-- GC 内存 -->
+        <div class="stat-card">
+            <span class="stat-value">{{ "%.0f"|format(data.gcMb) }} MB</span>
+            <span class="stat-label">GC 内存</span>
+        </div>
+    </div>
+    
+    <div style="margin-top: 10px; text-align: center; font-size: 12px; color: #888;">
+        World: {{ data.world }}
+    </div>
+{% endblock %}

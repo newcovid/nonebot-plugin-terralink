@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="panel-header">
+        <span class="panel-title">💀 Boss 进度</span>
+        <span style="font-size: 14px; color: #aaa;">{{ data.worldName }} ({{ data.difficulty }})</span>
+    </div>
+
+    <!-- 未击败 (优先展示) -->
+    {% if data.undefeated %}
+    <div class="section-title" style="color: #ff6b6b;">未击败</div>
+    <div class="col" style="gap: 4px;">
+        {% for boss in data.undefeated %}
+        <div class="boss-item">
+            <span>{{ boss.name }}</span>
+            <span class="boss-alive">✘</span>
+        </div>
+        {% endfor %}
+    </div>
+    <div style="height: 10px;"></div>
+    {% endif %}
+
+    <!-- 已击败 -->
+    {% if data.defeated %}
+    <div class="section-title" style="color: #8aff8a;">已击败</div>
+    <div class="col" style="gap: 4px;">
+        {% for boss in data.defeated %}
+        <div class="boss-item">
+            <span style="color: #aaa;">{{ boss.name }}</span>
+            <span class="boss-killed">✔</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not data.undefeated and not data.defeated %}
+        <div style="text-align: center; color: #aaa;">暂无 Boss 数据</div>
+    {% endif %}
+{% endblock %}

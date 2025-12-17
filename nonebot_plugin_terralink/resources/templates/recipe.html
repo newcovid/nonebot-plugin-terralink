@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros with context %}
+
+{% block content %}
+
+{# --- 宏：递归渲染树节点 --- #}
+{% macro render_tree_node(tree_node) %}
+<li>
+    <div class="node-wrapper">
+        {{ macros.item_slot(tree_node.item, show_name=True) }}
+
+        {# 制作站图标 #}
+        {% if tree_node.recipes %}
+            {% set main_recipe = tree_node.recipes[0] %}
+            
+            {# [Update] stations (小驼峰) #}
+            {% if main_recipe.stations %}
+            <div class="station-mini" title="{{ main_recipe.stations[0].name }}">
+                {% if main_recipe.stations[0].imagePath %}
+                <img src="{{ to_img_url(main_recipe.stations[0].imagePath) }}">
+                {% else %}
+                <span style="font-size: 10px;">🛠️</span>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {# 条件显示 #}
+            {% if main_recipe.conditions %}
+            <div class="node-condition">
+                {{ main_recipe.conditions[0] }}
+            </div>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <!-- 子节点容器 -->
+    {% if tree_node.recipes and tree_node.recipes[0].ingredients %}
+    <ul>
+        {% for ing_obj in tree_node.recipes[0].ingredients %}
+            {{ render_tree_node(ing_obj.tree) }}
+        {% endfor %}
+    </ul>
+    {% endif %}
+</li>
+{% endmacro %}
+
+
+<div class="panel-header">
+    <span class="panel-title">🔨 合成树: {{ data.root.item.name }}</span>
+    <span style="font-size: 14px; color: #aaa;">{{ data.root.item.mod }}</span>
+</div>
+
+<div class="section-title">合成路线</div>
+<div class="tree-container">
+    <div class="tree">
+        <ul>
+            {{ render_tree_node(data.root) }}
+        </ul>
+    </div>
+</div>
+
+{% if data.root.recipes|length > 1 %}
+<div style="margin-top: 5px; text-align: center; color: #888; font-size: 12px;">
+    * 该物品还有其他 {{ data.root.recipes|length - 1 }} 种合成配方，图中仅展示第一种。
+</div>
+{% endif %}
+
+<!-- 用途列表 (Update: usage_recipes -> usageRecipes) -->
+{% if data.usageRecipes %}
+<div class="section-title">可以合成</div>
+<div style="display: flex; flex-direction: column; gap: 8px;">
+    {% for r in data.usageRecipes %}
+    {# [Update] ResultId -> resultId #}
+    {% set result_node = data.nodes[r.resultId|string] %}
+    
+    <div class="usage-card">
+        <div class="usage-result">
+            {% if result_node %}
+                {# [Update] Name -> name, ImagePath -> imagePath, ResultCount -> resultCount #}
+                {{ macros.item_slot({'name': result_node.name, 'stack': r.resultCount, 'imagePath': result_node.imagePath}, show_name=True) }}
+            {% else %}
+                {{ macros.item_slot({'name': 'ID:' ~ r.resultId, 'stack': r.resultCount}, show_name=True) }}
+            {% endif %}
+        </div>
+
+        <div class="usage-middle">
+            <div class="usage-station-icon">
+                {# [Update] Stations -> stations #}
+                {% if r.stations %}
+                    {% if r.stations[0].imagePath %}
+                    <img src="{{ to_img_url(r.stations[0].imagePath) }}" style="width: 24px; height: 24px;">
+                    {% else %}
+                    <span style="font-size: 16px;">🛠️</span>
+                    {% endif %}
+                {% else %}
+                    <span style="font-size: 12px;">✋</span>
+                {% endif %}
+            </div>
+            <span style="font-size: 20px; font-weight: bold; color: #666;">➔</span>
+        </div>
+
+        <div class="usage-ingredients">
+            {# [Update] Ingredients -> ingredients #}
+            {% for ing in r.ingredients %}
+                {# [Update] ItemId -> itemId #}
+                {% set ing_node = data.nodes[ing.itemId|string] %}
+                {% if ing_node %}
+                    {# [Update] targetId -> targetId #}
+                    {% if ing.itemId == data.targetId %}
+                        <div style="border: 2px solid #ffce45; border-radius: 6px; padding: 2px; background: rgba(255, 206, 69, 0.1);">
+                            {# [Update] Count -> count #}
+                            {{ macros.item_slot({'name': ing_node.name, 'stack': ing.count, 'imagePath': ing_node.imagePath}, show_name=False) }}
+                        </div>
+                    {% else %}
+                        {{ macros.item_slot({'name': ing_node.name, 'stack': ing.count, 'imagePath': ing_node.imagePath}, show_name=False) }}
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+
+            {# [Update] Conditions -> conditions #}
+            {% if r.conditions %}
+            <div style="width: 100%; display: flex; gap: 5px; flex-wrap: wrap;">
+                {% for cond in r.conditions %}
+                <span class="usage-condition">{{ cond }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 提示隐藏数量 (Update: hidden_usages_count -> hiddenUsagesCount) -->
+{% if data.hiddenUsagesCount > 0 %}
+<div style="text-align: center; color: #aaa; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; font-size: 14px;">
+    ... 还有 <b>{{ data.hiddenUsagesCount }}</b> 个合成用途未显示 ...
+</div>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

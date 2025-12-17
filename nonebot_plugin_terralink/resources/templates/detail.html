@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{# 关键修复: 添加 with context #}
+{% import "macros.html" as macros with context %}
+
+{% block content %}
+{#
+[Ultimate Fix - CSS变量方案]
+1. 在这里定义一个专门的 CSS 类 .detail-large-icon。
+2. 使用 CSS 原生的 calc() 和 var() 来处理裁剪逻辑。
+3. 这样 HTML 标签里的 style 属性就只剩下简单的变量赋值，彻底消除 IDE 报错。
+#}
+<style>
+    .detail-large-icon {
+        max-width: 100px;
+        max-height: 100px;
+        image-rendering: pixelated;
+        object-fit: contain;
+        /* 定义 CSS 变量默认值为 1 */
+        --frame-cnt: 1;
+        /* 核心裁剪逻辑: 底部裁剪量 = 100% - (100% / 帧数) */
+        /* 如果帧数为1，则裁剪量为0，显示全图；如果帧数为N，则保留顶部 1/N */
+        object-view-box: inset(0 0 calc(100% - 100% / var(--frame-cnt)) 0);
+    }
+</style>
+
+<div class="panel-header">
+    <span class="panel-title">{{ data.name }}</span>
+    <div style="text-align: right;">
+        <div style="font-size: 12px; color: #aaa;">ID: {{ data.id }}</div>
+        <div style="font-size: 12px; color: #aaa;">{{ data.mod }}</div>
+    </div>
+</div>
+
+<!-- 顶部：大图 + 描述 + 属性 -->
+<div class="detail-top">
+    <div class="col" style="width: 40%;">
+        <!-- 大图标展示 -->
+        <div
+            style="background: #2b3055; border-radius: 8px; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100px;">
+            {% if data.imagePath %}
+            {% set frames = data.frameCount or 1 %}
+
+            <!-- 
+                         IDE 友好型写法:
+                         style="--frame-cnt: {{ frames }};" 
+                         这完全符合 "属性: 值;" 的 CSS 语法结构，IDE 不会再报错。
+                    -->
+            <img src="{{ to_img_url(data.imagePath) }}" class="detail-large-icon" style="--frame-cnt: {{ frames }};">
+            {% else %}
+            <span style="font-size: 40px;">?</span>
+            {% endif %}
+        </div>
+        <!-- 描述 -->
+        {% if data.description and data.description != "None" %}
+        <div class="detail-desc-box">
+            {{ data.description }}
+        </div>
+        {% endif %}
+    </div>
+
+    <div style="flex: 1;">
+        {% if data.stats %}
+        <table class="stats-table">
+            <tr>
+                <td class="stat-name">类型</td>
+                <td class="stat-val">{{ data.type }}</td>
+            </tr>
+            {% if data.stats.damage > 0 %}
+            <tr>
+                <td class="stat-name">伤害</td>
+                <td class="stat-val">{{ data.stats.damage }}</td>
+            </tr>
+            {% endif %}
+            {% if data.stats.crit > 0 %}
+            <tr>
+                <td class="stat-name">暴击率</td>
+                <td class="stat-val">{{ data.stats.crit }}%</td>
+            </tr>
+            {% endif %}
+            {% if data.stats.useTime > 0 %}
+            <tr>
+                <td class="stat-name">使用时间</td>
+                <td class="stat-val">{{ data.stats.useTime }}</td>
+            </tr>
+            {% endif %}
+            {% if data.stats.knockBack > 0 %}
+            <tr>
+                <td class="stat-name">击退</td>
+                <td class="stat-val">{{ "%.1f"|format(data.stats.knockBack) }}</td>
+            </tr>
+            {% endif %}
+            {% if data.stats.defense > 0 %}
+            <tr>
+                <td class="stat-name">防御力</td>
+                <td class="stat-val">{{ data.stats.defense }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td class="stat-name">最大堆叠</td>
+                <td class="stat-val">{{ data.stats.maxStack }}</td>
+            </tr>
+            <tr>
+                <td class="stat-name">价值</td>
+                <td class="stat-val">{{ data.stats.value }} 铜</td>
+            </tr>
+        </table>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 获取方式：掉落/售卖 -->
+{% if data.droppedBy or data.soldBy %}
+<div class="section-title">获取来源</div>
+<div class="grid-container">
+    {% for npc in data.droppedBy %}
+    <div class="source-chip">
+        <span>⚔️ {{ npc.name }}</span>
+    </div>
+    {% endfor %}
+
+    {% for npc in data.soldBy %}
+    <div class="source-chip" style="border-color: #ffce45;">
+        <span>💰 {{ npc.name }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- 简易合成预览 (Query 接口返回的简单配方) -->
+{% if data.recipes %}
+<div class="section-title">合成方式 (简略)</div>
+<div class="col">
+    {% for recipe in data.recipes %}
+    <div class="recipe-row">
+        <!-- 制作站 -->
+        <div class="recipe-station">
+            {% if recipe.stations %}
+            {{ macros.item_slot(recipe.stations[0], show_name=True) }}
+            {% else %}
+            <span style="font-size: 12px; color: #aaa;">徒手</span>
+            {% endif %}
+        </div>
+
+        <!-- 材料 -->
+        <div class="recipe-ingredients">
+            {% for ing in recipe.ingredients %}
+            {{ macros.item_slot(ing, show_name=False) }}
+            {% endfor %}
+        </div>
+
+        <div class="recipe-arrow">➨</div>
+
+        <!-- 结果 -->
+        <div class="recipe-result">
+            {# [Fix] 传递 frameCount 以确保右下角结果物品也能正确裁剪 #}
+            {{ macros.item_slot({'name': recipe.resultName, 'stack': recipe.resultCount, 'imagePath': data.imagePath,
+            'frameCount': data.frameCount}, show_name=False) }}
+        </div>
+    </div>
+    {% endfor %}
+
+    <div style="text-align: center; font-size: 12px; color: #aaa; margin-top: 5px;">
+        使用 /recipe {{ data.id }} 查看完整合成树
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

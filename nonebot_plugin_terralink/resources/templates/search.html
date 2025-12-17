@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{# 关键修复: 添加 with context #}
+{% import "macros.html" as macros with context %}
+
+{% block content %}
+    <div class="panel-header">
+        <span class="panel-title">🔍 搜索结果: "{{ data.query }}"</span>
+        <span style="color: #aaa;">共 {{ data.count }} 条</span>
+    </div>
+
+    <div class="col">
+        {% for item in data.results %}
+        <div class="row" style="background-color: #4d5791; padding: 5px; border-radius: 4px; align-items: center;">
+            <!-- [Update] 字段更新为小驼峰 (name, imagePath) -->
+            {{ macros.item_slot({'imagePath': item.imagePath, 'name': item.name, 'frameCount': item.frameCount}, show_name=False) }}
+            
+            <div class="col" style="gap: 2px;">
+                <span style="font-size: 18px; font-weight: bold;">{{ item.name }}</span>
+                <!-- [Update] 字段更新为小驼峰 (id, modName) -->
+                <span style="font-size: 12px; color: #bbb;">ID: {{ item.id }} | Mod: {{ item.modName }}</span>
+            </div>
+            
+            <div style="margin-left: auto; padding-right: 10px;">
+                <!-- [Update] 字段更新为小驼峰 (matchQuality) -->
+                {% if item.matchQuality == 0 %}
+                    <span style="color: #4ff; font-size: 12px;">★ 精确匹配</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% endblock %}

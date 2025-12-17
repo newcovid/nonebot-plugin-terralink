@@ -1,12 +1,18 @@
 import json
 import asyncio
+import uuid
 from typing import Optional, Any, Dict
 from nonebot import get_plugin_config
 from nonebot.log import logger
 import websockets
 
 from ..config import Config, LinkConfig
-from .models import AuthResponsePacket, CommandPacket, ServerChatPacket
+from .models import (
+    AuthResponsePacket,
+    CommandPacket,
+    ServerChatPacket,
+    CommandResponsePacket,
+)
 
 plugin_config = get_plugin_config(Config)
 
@@ -14,6 +20,7 @@ plugin_config = get_plugin_config(Config)
 class Session:
     """
     代表一个 TML 服务器连接实例
+    [Update] 实现了基于 UUID 的全双工异步指令匹配
     """
 
     def __init__(self, ws: Any, remote_addr: str):
@@ -22,10 +29,13 @@ class Session:
         self.config: Optional[LinkConfig] = None
         self._authenticated: bool = False
 
+        # [Update] 从 Deque 改为 Dict
+        # Key: RequestID (UUID str)
+        # Value: asyncio.Future (等待结果的锚点)
+        self._pending_commands: Dict[str, asyncio.Future] = {}
+
     @property
     def is_ready(self) -> bool:
-        """会话是否已就绪（已连接 + 已鉴权 + 已绑定配置）"""
-        # 这里只做逻辑层面的检查，物理连接状态由 send 时的异常处理负责
         return self._authenticated and self.config is not None
 
     @property
@@ -37,59 +47,88 @@ class Session:
         return self.config.name if self.config else self.remote_addr
 
     async def send_json(self, data: dict) -> bool:
-        """
-        核心发送逻辑：直接发送，捕获异常
-        """
+        """核心发送逻辑"""
         if self.ws is None:
-            logger.warning(
-                f"[TerraLink] 发送失败: Session 未关联 WebSocket ({self.server_name})"
-            )
             return False
-
         try:
             json_str = json.dumps(data)
             await self.ws.send(json_str)
-
-            # 调试日志：不打印鉴权包，避免刷屏，其他包打印内容
             if data.get("type") != "auth_response":
-                logger.debug(f"[TerraLink] Sent to {self.server_name}: {json_str}")
+                logger.debug(f"[TerraLink] Sent -> {self.server_name}: {json_str}")
             return True
-
-        except websockets.exceptions.ConnectionClosed as e:
-            # 捕获所有连接关闭异常 (包含 OK 和 Error)
-            logger.warning(
-                f"[TerraLink] 发送失败: 连接已断开 ({self.server_name}) | Code: {e.code}, Reason: {e.reason}"
-            )
-            # 可以在这里主动触发清理逻辑，虽然 server.py 也会处理
-            return False
         except Exception as e:
-            # 捕获其他未预料的异常
-            logger.error(
-                f"[TerraLink] 发送异常 ({self.server_name}): {type(e).__name__} - {e}"
-            )
+            logger.error(f"[TerraLink] Send Error ({self.server_name}): {e}")
             return False
 
     async def send_auth_response(self, success: bool, message: str):
         packet = AuthResponsePacket(success=success, message=message)
-        await self.send_json(packet.dict())
-
-    async def send_command(self, command: str, args: list = None) -> bool:
-        if not self.is_ready:
-            return False
-        packet = CommandPacket(command=command, args=args or [])
-        return await self.send_json(packet.dict())
+        # [Fix] Pydantic v2: use model_dump() instead of dict()
+        await self.send_json(packet.model_dump())
 
     async def send_chat(self, user: str, msg: str) -> bool:
         if not self.is_ready:
             return False
         packet = ServerChatPacket(user_name=user, message=msg)
-        return await self.send_json(packet.dict())
+        # [Fix] Pydantic v2: use model_dump() instead of dict()
+        return await self.send_json(packet.model_dump())
+
+    async def execute_command(
+        self, command: str, args: list = None, timeout: float = 10.0
+    ) -> CommandResponsePacket:
+        """
+        发送指令并等待结果 (ID 匹配模式)
+        """
+        if not self.is_ready:
+            raise RuntimeError("Session not ready")
+
+        # 1. 生成唯一 ID
+        req_id = str(uuid.uuid4())
+
+        # 2. 创建 Future 并存入字典
+        future = asyncio.get_running_loop().create_future()
+        self._pending_commands[req_id] = future
+
+        try:
+            # 3. 发送带 ID 的数据包
+            packet = CommandPacket(command=command, args=args or [], id=req_id)
+            # [Fix] Pydantic v2: use model_dump() instead of dict()
+            success = await self.send_json(packet.model_dump())
+
+            if not success:
+                raise RuntimeError("Failed to send command packet")
+
+            # 4. 等待特定 ID 的结果
+            return await asyncio.wait_for(future, timeout)
+
+        except Exception:
+            raise
+        finally:
+            # 5. 清理字典 (无论成功、失败还是超时，都必须移除，防止内存泄漏)
+            self._pending_commands.pop(req_id, None)
+
+    def handle_command_response(self, packet: CommandResponsePacket):
+        """
+        处理收到的指令响应
+        通过 packet.id 精准找到对应的 Future
+        """
+        if not packet.id:
+            # 如果是旧版模组或异常包没有 ID，记录日志并忽略
+            logger.warning(
+                f"[TerraLink] Received response without ID: {packet.message}"
+            )
+            return
+
+        future = self._pending_commands.get(packet.id)
+        if future:
+            if not future.done():
+                future.set_result(packet)
+        else:
+            # 可能是超时后才收到的包，或者 ID 错误
+            logger.debug(f"[TerraLink] Received orphaned response for ID: {packet.id}")
 
 
 class SessionManager:
-    """
-    管理所有 TML 连接的容器
-    """
+    """管理所有 TML 连接的容器"""
 
     def __init__(self):
         self._sessions_by_ws: Dict[Any, Session] = {}
@@ -98,17 +137,25 @@ class SessionManager:
     def register(self, ws: Any, remote_addr: str) -> Session:
         session = Session(ws, remote_addr)
         self._sessions_by_ws[ws] = session
-        logger.info(f"[TerraLink] 新连接接入: {remote_addr} (等待鉴权)")
+        logger.info(f"[TerraLink] New Connection: {remote_addr}")
         return session
 
     def unregister(self, ws: Any):
         if ws in self._sessions_by_ws:
             session = self._sessions_by_ws.pop(ws)
-            # 只有当映射确实是该 Session 时才移除
             if session.config and session.config.group_id in self._sessions_by_group:
                 if self._sessions_by_group[session.config.group_id] == session:
                     del self._sessions_by_group[session.config.group_id]
-            logger.info(f"[TerraLink] 连接清理完成: {session.server_name}")
+
+            # 清理所有挂起的任务，通知它们连接断开了
+            for req_id, future in session._pending_commands.items():
+                if not future.done():
+                    future.set_exception(ConnectionError("Connection closed"))
+
+            # 快速清空
+            session._pending_commands.clear()
+
+            logger.info(f"[TerraLink] Disconnected: {session.server_name}")
 
     def get_session_by_group(self, group_id: int) -> Optional[Session]:
         return self._sessions_by_group.get(group_id)
@@ -123,28 +170,17 @@ class SessionManager:
         )
 
         if not matched_config:
-            logger.warning(f"[TerraLink] 鉴权失败: Token '{token}' 未在配置中找到")
+            logger.warning(f"[TerraLink] Auth Failed: Token '{token}' not found")
             return False
-
-        # 检查顶号
-        if matched_config.group_id in self._sessions_by_group:
-            old_session = self._sessions_by_group[matched_config.group_id]
-            if (
-                old_session != session
-            ):  # 这里不需要判断 old_session.is_connected，直接覆盖映射即可
-                logger.warning(
-                    f"[TerraLink] 群 {matched_config.group_id} 的连接映射已更新 (旧连接被顶替)"
-                )
 
         session.config = matched_config
         session._authenticated = True
         self._sessions_by_group[matched_config.group_id] = session
 
         logger.success(
-            f"[TerraLink] 鉴权成功: [{matched_config.name}] <-> [群 {matched_config.group_id}]"
+            f"[TerraLink] Auth Success: [{matched_config.name}] <-> [Group {matched_config.group_id}]"
         )
         return True
 
 
-# 全局单例
 manager = SessionManager()

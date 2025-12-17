@@ -1,0 +1,47 @@
+{# 
+    宏：渲染一个物品槽 
+    item: ItemDto / SearchResultItemDto / CleanNode
+    show_name: 是否在下方显示名字
+#}
+{% macro item_slot(item, show_name=False) %}
+
+{# [Update] 标准化帧数 (统一使用小驼峰 frameCount) #}
+{% set frames = item.frameCount or 1 %}
+
+<div class="item-wrapper" style="display: flex; flex-direction: column; align-items: center;">
+    <div class="item-slot" title="{{ item.name }}">
+        {# [Update] 统一使用小驼峰 imagePath #}
+        {% if item.imagePath %}
+            {% set img_path = item.imagePath %}
+            
+            <!-- 
+                [Ultimate Fix] 使用 CSS 变量传递帧数
+                style="--frame-cnt: {{ frames }};" 是合法的 CSS 语法，IDE 不会报错。
+                裁剪逻辑由 style.css 中的 object-view-box 处理。
+            -->
+            <img src="{{ to_img_url(img_path) }}" 
+                 class="item-icon" 
+                 style="--frame-cnt: {{ frames }};"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            
+            <!-- 图片加载失败(onerror)或路径错误时，显示文字 -->
+            <span class="item-fallback-text" style="display: none; font-size: 10px; text-align: center; line-height: 1.1; padding: 2px; word-break: break-all;">
+                {{ item.name }}
+            </span>
+        {% else %}
+            <!-- 无路径时直接显示文字 -->
+            <span class="item-fallback-text" style="font-size: 10px; text-align: center; line-height: 1.1; padding: 2px; word-break: break-all;">
+                {{ item.name }}
+            </span>
+        {% endif %}
+
+        {% if item.stack and item.stack > 1 %}
+            <span class="item-stack">{{ item.stack }}</span>
+        {% endif %}
+    </div>
+    
+    {% if show_name %}
+        <span class="item-name-tag">{{ item.name }}</span>
+    {% endif %}
+</div>
+{% endmacro %}

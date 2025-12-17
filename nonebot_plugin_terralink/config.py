@@ -32,3 +32,7 @@ class Config(BaseModel, extra=Extra.ignore):
 
     # 指令前缀 (用于 QQ 发消息转为游戏指令的标识，如 /say)
     terralink_cmd_prefix: str = "/"
+
+    # 用于存放从 exportassets 导出的图片，或手动解包的资源
+    # 如果为空，则强制使用纯文本模式
+    terralink_resource_path: Optional[str] = None

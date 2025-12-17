@@ -1,43 +1,43 @@
 [中文 README](README_CN.md) | [English README](README.md) | [中文通信文档](TerraNoneBridge通信文档.md) | [English Protocol](TerraNoneBridge_Protocol.md)
 
-# TerraNoneBridge 通讯接口文档 (WebSocket / Nonebot2 适配版)
+# TerraNoneBridge Communication Interface Documentation (WebSocket / Nonebot2 Adapter)
 
-## 1. 概述
+## 1. Overview
 
-本稳定通过 WebSocket 协议实现泰拉瑞亚服务器 (tModLoader) 与 Nonebot2 机器人端的高效双向通讯。
-服务端监听配置中指定的端口（默认 7778），客户端（Nonebot）需主动发起连接。
+This document outlines the high-efficiency two-way communication between the Terraria Server (tModLoader) and the Nonebot2 robot client using the WebSocket protocol.
+The server listens on a configured port (default 7778), and the client (Nonebot) must actively initiate the connection.
 
-### 核心机制
-* **通讯协议**: WebSocket
-* **数据格式**: JSON
-* **鉴权机制**: 基于 Token 的握手验证
-* **并发控制**: 使用 `id` 字段追踪异步请求与响应 (类似 JSON-RPC)
+### Core Mechanisms
+* **Protocol**: WebSocket
+* **Data Format**: JSON
+* **Authentication**: Token-based handshake
+* **Concurrency**: Uses `id` fields to track asynchronous requests and responses (similar to JSON-RPC)
 
 ---
 
-## 2. 基础协议结构
+## 2. Basic Protocol Structure
 
-所有数据包均继承自基础包结构。`type` 字段决定了数据包的具体用途。
+All data packets inherit from a base structure. The `type` field determines the specific purpose of the packet.
 
 ```json
 {
-  "type": "具体的包类型 (auth / auth_response / event / chat / command / command_response)",
+  "type": "packet_type (auth / auth_response / event / chat / command / command_response)",
   "timestamp": 1715000000
 }
 ```
 
 ---
 
-## 3. 连接与鉴权
+## 3. Connection and Authentication
 
-连接建立后，客户端必须在 10 秒内发送鉴权包，否则连接将被断开。
+After the connection is established, the client must send an authentication packet within 10 seconds, otherwise the connection will be disconnected.
 
-### 3.1 发送鉴权请求 (Client -> Server)
+### 3.1 Authentication Request (Client -> Server)
 
 * **type**: `auth`
-* **token**: 配置文件 `ServerConfig.cs` 中的 `AccessToken`。
+* **token**: The `AccessToken` configured in `ServerConfig.cs`.
 
-**示例:**
+**Example:**
 ```json
 {
   "type": "auth",
@@ -46,13 +46,13 @@
 }
 ```
 
-### 3.2 鉴权响应 (Server -> Client)
+### 3.2 Authentication Response (Server -> Client)
 
 * **type**: `auth_response`
-* **success**: 布尔值，标识鉴权是否通过。
-* **message**: 状态描述。
+* **success**: Boolean, indicating if authentication passed.
+* **message**: Status description.
 
-**示例:**
+**Example:**
 ```json
 {
   "type": "auth_response",
@@ -64,19 +64,19 @@
 
 ---
 
-## 4. 事件广播 (Server -> Client)
+## 4. Event Broadcasting (Server -> Client)
 
-服务端主动推送的消息，无需请求 ID。
+Messages proactively pushed by the server, no request ID required.
 
-### 4.1 聊天消息同步 (`chat`)
-当游戏内玩家发送消息时触发。
+### 4.1 Chat Sync (`chat`)
+Triggered when an in-game player sends a message.
 
-**数据结构:**
-* **user_name**: 发送者名称 (系统消息通常为 "Server")
-* **message**: 消息内容
-* **color**: 消息颜色的 16 进制代码
+**Data Structure:**
+* **user_name**: Sender name (System messages are usually "Server")
+* **message**: Message content
+* **color**: Hex code of the message color
 
-**示例:**
+**Example:**
 ```json
 {
   "type": "chat",
@@ -87,15 +87,15 @@
 }
 ```
 
-### 4.2 服务器事件 (`event`)
-涵盖世界加载、Boss生成/击杀等。
+### 4.2 Server Events (`event`)
+Covers world loading, Boss spawning/killing, etc.
 
-**数据结构:**
-* **event_type**: 事件子类型 (`world_load`, `world_unload`, `server_ready`, `boss_spawn`, `boss_kill`)
-* **world_name**: 世界名称
-* **motd**: 事件描述文本
+**Data Structure:**
+* **event_type**: Event subtype (`world_load`, `world_unload`, `server_ready`, `boss_spawn`, `boss_kill`)
+* **world_name**: World name
+* **motd**: Event description text
 
-**示例:**
+**Example:**
 ```json
 {
   "type": "event",
@@ -108,19 +108,19 @@
 
 ---
 
-## 5. 指令交互系统
+## 5. Command Interaction System
 
-客户端发送 `command` 包，服务端处理后返回 `command_response` 包。
+The client sends a `command` packet, and the server processes it and returns a `command_response` packet.
 
-### 5.1 请求格式 (Client -> Server)
+### 5.1 Request Format (Client -> Server)
 
-**字段说明:**
-* **type**: 固定为 `command`
-* **command**: 指令名称 (不带前缀，如 `list`)
-* **args**: 参数列表
-* **id**: **[关键]** 请求唯一标识符 (UUID 或随机字符串)，用于将响应对应回请求。
+**Fields:**
+* **type**: Fixed as `command`
+* **command**: Command name (without prefix, e.g., `list`)
+* **args**: List of arguments
+* **id**: **[Critical]** Unique Request Identifier (UUID or random string), used to map responses back to requests.
 
-**通用请求示例:**
+**Generic Request Example:**
 ```json
 {
   "type": "command",
@@ -131,16 +131,16 @@
 }
 ```
 
-### 5.2 响应格式 (Server -> Client)
+### 5.2 Response Format (Server -> Client)
 
-**字段说明:**
-* **type**: 固定为 `command_response`
-* **status**: `success` 或 `error`
-* **message**: 人类可读的返回消息 (用于直接展示)
-* **data**: 结构化的数据对象 (用于程序处理，不同指令结构不同)
-* **id**: 回传请求中的 `id`
+**Fields:**
+* **type**: Fixed as `command_response`
+* **status**: `success` or `error`
+* **message**: Human-readable return message (for direct display)
+* **data**: Structured data object (for programmatic processing, differs by command)
+* **id**: The `id` from the originating request
 
-**通用响应示例:**
+**Generic Response Example:**
 ```json
 {
   "type": "command_response",
@@ -154,16 +154,16 @@
 
 ---
 
-## 6. 具体指令详解 (Command Detail)
+## 6. Command Details
 
-以下所有响应均位于 `command_response` 包的 `data` 字段中。
-**注意**: 所有示例数据均保证非空且包含完整字段。
+All responses below are located in the `data` field of the `command_response` packet.
+**Note**: All example data guarantees non-empty and complete fields.
 
-### 6.1 `list` - 查询在线玩家
-* **说明**: 获取当前服务器在线玩家列表。
-* **Args**: 无
+### 6.1 `list` - Online Players
+* **Desc**: Get the list of players currently online.
+* **Args**: None
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "count": 2,
@@ -175,11 +175,11 @@
 }
 ```
 
-### 6.2 `tps` - 服务器性能状态
-* **说明**: 获取 TPS、内存占用及实体统计。
-* **Args**: 无
+### 6.2 `tps` - Server Performance
+* **Desc**: Get TPS, memory usage, and entity statistics.
+* **Args**: None
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "version": "v2024.05.3.1",
@@ -193,13 +193,13 @@
 }
 ```
 
-### 6.3 `time` - 时间管理
-* **说明**: 查询或设置世界时间。
+### 6.3 `time` - Time Management
+* **Desc**: Query or set world time.
 * **Args**: 
-    * 查询: 无 或 `[]`
-    * 设置: `["set", "morning" / "noon" / "evening" / "midnight" / "18000"]`
+    * Query: None or `[]`
+    * Set: `["set", "morning" / "noon" / "evening" / "midnight" / "18000"]`
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "timeString": "04:30",
@@ -210,13 +210,13 @@
   "action": "query" 
 }
 ```
-*(注: 若 action 为 "set"，数据结构相同，仅数值变化)*
+*(Note: If action is "set", data structure is same, only values change)*
 
-### 6.4 `boss` - Boss 击杀进度
-* **说明**: 获取当前世界的 Boss 击杀清单（包含模组 Boss）。
-* **Args**: 无
+### 6.4 `boss` - Boss Progression
+* **Desc**: Get the list of defeated/undefeated bosses in the current world (supports modded bosses).
+* **Args**: None
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "worldName": "TerraWorld",
@@ -248,11 +248,11 @@
 }
 ```
 
-### 6.5 `inv` - 查看玩家背包
-* **说明**: 查询指定玩家的背包、装备及饰品数据。
+### 6.5 `inv` - Player Inventory
+* **Desc**: Query specific player's inventory, armor, and accessories.
 * **Args**: `["<PlayerName>"]`
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "playerName": "Alice",
@@ -319,11 +319,11 @@
 }
 ```
 
-### 6.6 `query` - 查询物品详情
-* **说明**: 获取物品详细属性、掉落源、出售NPC及合成表概览。
+### 6.6 `query` - Item Details
+* **Desc**: Get item stats, drop sources, NPC sales, and recipe overview.
 * **Args**: `["<ItemName>" / "<ItemID>"]`
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "id": 757,
@@ -404,11 +404,11 @@
 }
 ```
 
-### 6.7 `search` - 搜索物品
-* **说明**: 模糊搜索物品，返回匹配列表。
+### 6.7 `search` - Search Items
+* **Desc**: Fuzzy search for items, returns a matching list.
 * **Args**: `["<Keyword>"]`
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "query": "terra",
@@ -434,11 +434,11 @@
 }
 ```
 
-### 6.8 `recipe` - 合成表查询 (复杂)
-* **说明**: 递归查询合成树，包含目标物品的合成方式 (`craftRecipes`) 和用途 (`usageRecipes`)，以及所有相关物品的元数据 (`nodes`)。
+### 6.8 `recipe` - Recipe Tree (Complex)
+* **Desc**: Recursively queries the crafting tree, including how to craft the target item (`craftRecipes`), its usages (`usageRecipes`), and metadata for all referenced items (`nodes`).
 * **Args**: `["<ItemName>" / "<ItemID>"]`
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "targetId": 8,
@@ -532,11 +532,11 @@
 }
 ```
 
-### 6.9 `give` - 给予物品
-* **说明**: 给予玩家物品。需管理员权限。
+### 6.9 `give` - Give Item
+* **Desc**: Give item to player. Requires Admin.
 * **Args**: `["<PlayerName>", "<ItemName>", "<Amount>"]`
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "player": "Alice",
@@ -546,11 +546,11 @@
 }
 ```
 
-### 6.10 `buff` - 给予Buff
-* **说明**: 给予玩家或所有人Buff。需管理员权限。
+### 6.10 `buff` - Give Buff
+* **Desc**: Give buff to player or everyone. Requires Admin.
 * **Args**: `["<PlayerName> / all", "<BuffName/ID>", "<Seconds>"]`
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "targets": [
@@ -562,11 +562,11 @@
 }
 ```
 
-### 6.11 `kick` - 踢出玩家
-* **说明**: 踢出指定玩家。需管理员权限。
+### 6.11 `kick` - Kick Player
+* **Desc**: Kick specific player. Requires Admin.
 * **Args**: `["<PlayerName>", "<Reason>"]`
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "target": "Griefer123",
@@ -575,22 +575,22 @@
 }
 ```
 
-### 6.12 `butcher` - 清理生物
-* **说明**: 杀死所有非友善 NPC。需管理员权限。
-* **Args**: 无
+### 6.12 `butcher` - Kill Mobs
+* **Desc**: Kill all hostile NPCs. Requires Admin.
+* **Args**: None
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "killedCount": 42
 }
 ```
 
-### 6.13 `save` - 保存世界
-* **说明**: 触发世界保存。需管理员权限。
-* **Args**: 无
+### 6.13 `save` - Save World
+* **Desc**: Trigger world save. Requires Admin.
+* **Args**: None
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "success": true,
@@ -598,22 +598,22 @@
 }
 ```
 
-### 6.14 `settle` - 液体沉降
-* **说明**: 强制处理液体流动。需管理员权限。
-* **Args**: 无
+### 6.14 `settle` - Settle Liquids
+* **Desc**: Force liquid settlement. Requires Admin.
+* **Args**: None
 
-**Response Data 示例:**
+**Response Data Example:**
 ```json
 {
   "success": true
 }
 ```
 
-### 6.15 `help` - 获取指令帮助
-* **说明**: 获取指令列表或特定指令用法。
-* **Args**: 无 或 `["<CommandName>"]`
+### 6.15 `help` - Get Command Help
+* **Desc**: Get command list or specific usage.
+* **Args**: None or `["<CommandName>"]`
 
-**Response Data 示例 (List):**
+**Response Data Example (List):**
 ```json
 [
   {
@@ -631,14 +631,14 @@
 ]
 ```
 
-### 6.16 `exportassets` - 资源导出
-* **说明**: 导出游戏纹理资源（物品/NPC/Buff等）到本地。这是一个**长耗时**操作。
-* **Args**: `["all"]` (可选，导出所有资源，否则仅导出 Core 类别)
-* **特殊行为**: 该指令不同于其他指令，它会使用相同的 Request ID 发送**多个** `command_response` 包来更新进度。
+### 6.16 `exportassets` - Export Assets
+* **Desc**: Export game texture assets (Item/NPC/Buff etc.) to local. This is a **long-running** operation.
+* **Args**: `["all"]` (Optional, exports all assets, otherwise only Core category)
+* **Special Behavior**: Unlike other commands, this command sends **multiple** `command_response` packets with the same Request ID to update progress.
 
-**Response Data 流 (Stream):**
+**Response Data Stream:**
 
-**Packet 1 (开始):**
+**Packet 1 (Start):**
 ```json
 {
   "type": "command_response",
@@ -648,7 +648,7 @@
 }
 ```
 
-**Packet 2...N (进度更新):**
+**Packet 2...N (Progress):**
 ```json
 {
   "type": "command_response",
@@ -658,7 +658,7 @@
 }
 ```
 
-**Packet Final (完成):**
+**Packet Final (Complete):**
 ```json
 {
   "type": "command_response",
