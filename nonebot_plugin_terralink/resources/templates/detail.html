@@ -1,24 +1,14 @@
 {% extends "base.html" %}
-{# 关键修复: 添加 with context #}
 {% import "macros.html" as macros with context %}
 
 {% block content %}
-{#
-[Ultimate Fix - CSS变量方案]
-1. 在这里定义一个专门的 CSS 类 .detail-large-icon。
-2. 使用 CSS 原生的 calc() 和 var() 来处理裁剪逻辑。
-3. 这样 HTML 标签里的 style 属性就只剩下简单的变量赋值，彻底消除 IDE 报错。
-#}
 <style>
     .detail-large-icon {
         max-width: 100px;
         max-height: 100px;
         image-rendering: pixelated;
         object-fit: contain;
-        /* 定义 CSS 变量默认值为 1 */
         --frame-cnt: 1;
-        /* 核心裁剪逻辑: 底部裁剪量 = 100% - (100% / 帧数) */
-        /* 如果帧数为1，则裁剪量为0，显示全图；如果帧数为N，则保留顶部 1/N */
         object-view-box: inset(0 0 calc(100% - 100% / var(--frame-cnt)) 0);
     }
 </style>
@@ -40,11 +30,6 @@
             {% if data.imagePath %}
             {% set frames = data.frameCount or 1 %}
 
-            <!-- 
-                         IDE 友好型写法:
-                         style="--frame-cnt: {{ frames }};" 
-                         这完全符合 "属性: 值;" 的 CSS 语法结构，IDE 不会再报错。
-                    -->
             <img src="{{ to_img_url(data.imagePath) }}" class="detail-large-icon" style="--frame-cnt: {{ frames }};">
             {% else %}
             <span style="font-size: 40px;">?</span>
@@ -99,9 +84,20 @@
                 <td class="stat-name">最大堆叠</td>
                 <td class="stat-val">{{ data.stats.maxStack }}</td>
             </tr>
+            <!-- [Update] 价值显示 -->
             <tr>
-                <td class="stat-name">价值</td>
-                <td class="stat-val">{{ data.stats.value }} 铜</td>
+                <td class="stat-name">买入价格</td>
+                <td class="stat-val">{{ format_coin(data.stats.value) }}</td>
+            </tr>
+            <!-- [Update] 卖出价格 -->
+            <tr>
+                <td class="stat-name">卖出价格</td>
+                <td class="stat-val">
+                    <div>{{ format_coin((data.stats.value * 0.2)|int) }}</div>
+                    <div style="font-size: 10px; color: #aaa; font-weight: normal; margin-top: 4px; font-style: italic; line-height: 1.2;">
+                        * 基础售价 (受NPC快乐度影响)
+                    </div>
+                </td>
             </tr>
         </table>
         {% endif %}
@@ -152,7 +148,6 @@
 
         <!-- 结果 -->
         <div class="recipe-result">
-            {# [Fix] 传递 frameCount 以确保右下角结果物品也能正确裁剪 #}
             {{ macros.item_slot({'name': recipe.resultName, 'stack': recipe.resultCount, 'imagePath': data.imagePath,
             'frameCount': data.frameCount}, show_name=False) }}
         </div>

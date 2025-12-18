@@ -1,14 +1,19 @@
 import os
 import jinja2
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Union, Set
+from typing import Optional, List, Dict, Any, Union, Set, Tuple
 from nonebot import get_plugin_config, require
 from nonebot.log import logger
 
-# 尝试导入 htmlrender 核心功能
+# [Fix] Jinja2 3.1+ 移除了 Markup 的直接导出，必须从 markupsafe 导入
+try:
+    from markupsafe import Markup
+except ImportError:
+    # 兼容旧版本环境
+    from jinja2 import Markup
+
 try:
     require("nonebot_plugin_htmlrender")
-    # 我们改用 get_new_page 来手动控制截图逻辑
     from nonebot_plugin_htmlrender import get_new_page
 
     HTMLRENDER_AVAILABLE = True
@@ -38,9 +43,6 @@ CSS_DIR = PLUGIN_DIR / "resources" / "css"
 
 class RendererService:
     def __init__(self):
-        # 初始化 Jinja2 环境
-        # 使用 FileSystemLoader 加载 TEMPLATE_DIR 下的模板
-        # enable_async=True 意味着必须使用 render_async
         self.jinja_env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(str(TEMPLATE_DIR)),
             enable_async=True,
@@ -66,73 +68,90 @@ class RendererService:
         except Exception:
             return ""
 
+    def _format_coin(self, value: int) -> Markup:
+        """
+        将铜币数值格式化为 铂/金/银/铜 的 HTML 字符串。
+        使用 Markup 包裹，防止 Jinja2 自动转义导致 HTML 源码直接显示在图片上。
+        """
+        if not value or value <= 0:
+            return Markup('<span style="color:#888;">无价值</span>')
+
+        platinum = value // 1_000_000
+        rem = value % 1_000_000
+        gold = rem // 10_000
+        rem = rem % 10_000
+        silver = rem // 100
+        copper = rem % 100
+
+        parts = []
+        # 使用 white-space: nowrap 防止 数字和单位被换行分开
+        style_base = "text-shadow: 1px 1px 0 #000; white-space: nowrap;"
+
+        if platinum > 0:
+            parts.append(
+                f'<span style="color:#dcebf5; {style_base}">{platinum}铂</span>'
+            )
+        if gold > 0:
+            parts.append(f'<span style="color:#e0c055; {style_base}">{gold}金</span>')
+        if silver > 0:
+            parts.append(f'<span style="color:#b5b8c0; {style_base}">{silver}银</span>')
+        if copper > 0:
+            parts.append(f'<span style="color:#c57a53; {style_base}">{copper}铜</span>')
+
+        # 返回 Markup 对象，确保模板渲染时被视为 HTML 代码而非纯文本
+        return Markup(" ".join(parts))
+
     async def _render(
         self, template_name: str, data: Any, extra_context: Dict = None
     ) -> bytes:
         if not self.is_enabled:
             raise RuntimeError("Renderer is not enabled")
 
-        # 1. 动态视口策略
-        # 默认宽度 1000px，高度给一个小值让其自适应
+        # 动态视口策略
         viewport_width = 1000
         viewport_height = 100
 
-        # 合成树横向内容较多，给更宽的画布
         if template_name == "recipe.html":
-            viewport_width = 3000
+            viewport_width = 2400
             viewport_height = 600
 
-        # 2. 准备渲染上下文
         render_context = {
             "img_root": self._get_image_url(""),
             "css_path": CSS_DIR.as_uri(),
             "data": data,
             "to_img_url": self._get_image_url,
+            "format_coin": self._format_coin,
             **(extra_context or {}),
         }
 
-        # 3. Jinja2 渲染 HTML 字符串
         try:
             template = self.jinja_env.get_template(template_name)
-            # 使用 await render_async 避免 asyncio.run() 冲突
             html_content = await template.render_async(**render_context)
         except Exception as e:
             logger.error(f"[TerraLink] Template Render Error: {e}")
             raise
 
-        # 4. Playwright 截图
         async with get_new_page(
             viewport={"width": viewport_width, "height": viewport_height}
         ) as page:
-
-            # [关键修复] 设置文件访问上下文 (Base URL)
-            # 原因：如果在 about:blank (默认) 页面 set_content，浏览器安全策略会拦截 file:// 协议的 CSS 和图片加载。
-            # 解决：必须先 navigate (goto) 到本地文件目录，确立 file:// 源信任关系。
             base_url = TEMPLATE_DIR.absolute().as_uri()
             try:
                 await page.goto(base_url)
-            except Exception as e:
-                # 即使 goto 目录失败（例如没有 index.html），Context 通常也已建立，记录日志但继续尝试渲染
-                logger.debug(
-                    f"[TerraLink] Page goto base_url warning (usually harmless): {e}"
-                )
+            except Exception:
+                pass
 
-            # 设置页面内容 (wait_until="networkidle" 等待图片/CSS加载完毕)
             await page.set_content(html_content, wait_until="networkidle")
 
             try:
-                # 使用选择器定位到 .tml-panel 元素
-                # 这样可以只截取面板部分，去除多余的背景空白，实现自适应宽度
                 elem = await page.wait_for_selector(".tml-panel", timeout=5000)
                 return await elem.screenshot(type="png")
             except Exception as e:
-                # 如果找不到元素 (通常不会发生)，回退到全页截图
                 logger.warning(
                     f"[TerraLink] Selector .tml-panel failed, fallback to full page: {e}"
                 )
                 return await page.screenshot(full_page=True, type="png")
 
-    # --- 业务逻辑 (保持不变) ---
+    # --- 业务逻辑 ---
 
     async def render_inventory(self, data: PlayerInventoryDto) -> bytes:
         return await self._render("inventory.html", data.model_dump())
@@ -152,25 +171,55 @@ class RendererService:
                 recipe_map[r.resultId] = []
             recipe_map[r.resultId].append(r)
 
-        def build_node(item_id: int, path: Set[int], depth: int) -> Dict:
-            if depth > 20:
-                return None
+        MAX_DEPTH = 50
+        MAX_TOTAL_NODES = 2000
 
-            if item_id in path:
+        current_node_count = 0
+        target_id = data.targetId
+
+        global_expanded_ids: Set[int] = set()
+
+        def build_node(
+            item_id: int, path: Set[int], depth: int
+        ) -> Tuple[Optional[Dict], Set[int]]:
+            nonlocal current_node_count
+
+            if depth > MAX_DEPTH or current_node_count >= MAX_TOTAL_NODES:
                 node_info = nodes.get(str(item_id))
                 return {
                     "item": self._clean_node(item_id, node_info),
                     "recipes": [],
                     "is_leaf": True,
-                }
+                    "truncated": True,
+                }, set()
 
+            current_node_count += 1
             node_info = nodes.get(str(item_id))
+
+            if item_id in path:
+                return {
+                    "item": self._clean_node(item_id, node_info),
+                    "recipes": [],
+                    "is_leaf": True,
+                    "loop": True,
+                }, {item_id}
+
+            if item_id in global_expanded_ids:
+                return {
+                    "item": self._clean_node(item_id, node_info),
+                    "recipes": [],
+                    "is_leaf": True,
+                    "reference": True,
+                }, set()
+
+            global_expanded_ids.add(item_id)
+
             clean_node = self._clean_node(item_id, node_info)
             new_path = path | {item_id}
-
             tree_node = {"item": clean_node, "recipes": [], "is_leaf": True}
-            recipes = recipe_map.get(item_id, [])
+            detected_loops = set()
 
+            recipes = recipe_map.get(item_id, [])
             if recipes:
                 target_recipe = recipes[0]
                 recipe_obj = {
@@ -179,23 +228,29 @@ class RendererService:
                     "ingredients": [],
                 }
 
-                # 循环截断检测
+                has_ingredients = False
                 for ing in target_recipe.ingredients:
-                    if self._is_trivial_loop(ing.itemId, recipe_map, new_path):
-                        continue
+                    sub_tree, sub_loops = build_node(ing.itemId, new_path, depth + 1)
+                    detected_loops.update(sub_loops)
 
-                    sub_tree = build_node(ing.itemId, new_path, depth + 1)
                     if sub_tree:
                         sub_tree["item"]["stack"] = ing.count
                         recipe_obj["ingredients"].append({"tree": sub_tree})
+                        has_ingredients = True
 
-                if recipe_obj["ingredients"] or not target_recipe.ingredients:
+                if has_ingredients or not target_recipe.ingredients:
                     tree_node["recipes"].append(recipe_obj)
                     tree_node["is_leaf"] = False
 
-            return tree_node
+            if item_id in detected_loops:
+                if item_id != target_id:
+                    tree_node["recipes"] = []
+                    tree_node["is_leaf"] = True
+                    detected_loops.remove(item_id)
 
-        root_tree = build_node(data.targetId, set(), 0)
+            return tree_node, detected_loops
+
+        root_tree, _ = build_node(target_id, set(), 0)
 
         MAX_USAGES = 50
         usage_recipes_all = data.usageRecipes
@@ -212,18 +267,6 @@ class RendererService:
             "nodes": {k: v.model_dump() for k, v in nodes.items()},
             "targetId": data.targetId,
         }
-
-    def _is_trivial_loop(self, item_id: int, recipe_map: Dict, path: Set[int]) -> bool:
-        recipes = recipe_map.get(item_id, [])
-        if not recipes:
-            return False
-        first_recipe = recipes[0]
-        if not first_recipe.ingredients:
-            return False
-        for ing in first_recipe.ingredients:
-            if ing.itemId not in path:
-                return False
-        return True
 
     def _clean_node(self, item_id: int, node_info: Any) -> Dict:
         if not node_info:
