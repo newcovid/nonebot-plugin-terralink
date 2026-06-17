@@ -1,16 +1,9 @@
-import os
 import jinja2
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Union, Set, Tuple
+from typing import Optional, List, Dict, Any, Set, Tuple
+from markupsafe import Markup
 from nonebot import get_plugin_config, require
 from nonebot.log import logger
-
-# [Fix] Jinja2 3.1+ 移除了 Markup 的直接导出，必须从 markupsafe 导入
-try:
-    from markupsafe import Markup
-except ImportError:
-    # 兼容旧版本环境
-    from jinja2 import Markup
 
 try:
     require("nonebot_plugin_htmlrender")
@@ -102,7 +95,10 @@ class RendererService:
         return Markup(" ".join(parts))
 
     async def _render(
-        self, template_name: str, data: Any, extra_context: Dict = None
+        self,
+        template_name: str,
+        data: Any,
+        extra_context: Optional[Dict] = None,
     ) -> bytes:
         if not self.is_enabled:
             raise RuntimeError("Renderer is not enabled")

@@ -1,9 +1,9 @@
 import asyncio
-import traceback
+import base64
 import io
 import time
-from pathlib import Path
-from typing import Any, List
+import traceback
+from typing import Any
 from nonebot import on_command
 from nonebot.params import CommandArg
 from nonebot.adapters.onebot.v11 import Message, GroupMessageEvent, MessageSegment, Bot
@@ -11,7 +11,6 @@ from nonebot.log import logger
 from nonebot.exception import FinishedException
 from nonebot.matcher import Matcher
 
-# 尝试导入 PIL 用于图片尺寸检查
 try:
     from PIL import Image
 
@@ -29,7 +28,6 @@ from ..core.models import (
     SearchResultDto,
     ItemDetailDto,
     RecipeDataDto,
-    CommandHelpDto,
 )
 from ..services.renderer import renderer
 
@@ -63,99 +61,76 @@ async def execute_query(
     return response.data
 
 
+# 单边像素超过此值判定为大图，转为文件发送
+SIZE_LIMIT_PIXELS = 6000
+# 字节超过此值判定为大图（QQ 单图风控阈值附近）
+SIZE_LIMIT_BYTES = 4 * 1024 * 1024
+
+
+def _should_send_as_file(img: bytes) -> bool:
+    if len(img) > SIZE_LIMIT_BYTES:
+        logger.info(
+            f"[TerraLink] 图片体积过大 ({len(img) / 1024:.2f}KB)，转为文件发送"
+        )
+        return True
+
+    if PIL_AVAILABLE:
+        try:
+            with Image.open(io.BytesIO(img)) as pil_img:
+                w, h = pil_img.size
+                if w > SIZE_LIMIT_PIXELS or h > SIZE_LIMIT_PIXELS:
+                    logger.info(f"[TerraLink] 图片尺寸过大 ({w}x{h})，转为文件发送")
+                    return True
+        except Exception as e:
+            logger.warning(f"[TerraLink] PIL check failed: {e}")
+
+    return False
+
+
 async def render_and_finish(
     bot: Bot, matcher: Matcher, event: GroupMessageEvent, render_func, data
 ):
     """
-    通用渲染并结束 Matcher 的流程
-    [Update] 增加了 bot 和 event 参数，用于支持文件上传 API
+    通用渲染并发送的流程。
+    渲染产物始终保留在内存中：
+      - 普通图片：MessageSegment.image(bytes) 内部会编码为 base64://
+      - 大图：upload_group_file 接收 base64:// URI，避免依赖本地磁盘路径
+    这样异地部署的 napcat / Lagrange 也能正常读取，无需共享文件系统。
     """
-    img = None
     try:
-        logger.debug(f"[TerraLink] 准备渲染数据类型: {type(data)}")
-        # 1. 尝试渲染
         img = await render_func(data)
     except FinishedException:
         raise
     except Exception as e:
-        # 2. 渲染失败处理
-        err_trace = traceback.format_exc()
-        logger.error(f"[TerraLink] 图片渲染未捕获异常:\n{err_trace}")
-
+        logger.error(f"[TerraLink] 图片渲染未捕获异常:\n{traceback.format_exc()}")
         await matcher.finish(
             f"⚠️ 图片渲染失败: {type(e).__name__} - {e}\n(详情请检查控制台日志)"
         )
         return
 
-    # 3. 发送图片 (智能判断是否转为文件)
-    if img:
-        try:
-            should_send_as_file = False
-            file_name = f"terralink_{int(time.time())}.png"
-
-            # 尺寸阈值：单边超过 6000px 或 体积超过 4MB
-            SIZE_LIMIT_PIXELS = 6000
-            SIZE_LIMIT_BYTES = 4 * 1024 * 1024
-
-            if len(img) > SIZE_LIMIT_BYTES:
-                should_send_as_file = True
-                logger.info(
-                    f"[TerraLink] 图片体积过大 ({len(img)/1024:.2f}KB)，转为文件发送"
-                )
-
-            elif PIL_AVAILABLE:
-                try:
-                    with Image.open(io.BytesIO(img)) as pil_img:
-                        w, h = pil_img.size
-                        if w > SIZE_LIMIT_PIXELS or h > SIZE_LIMIT_PIXELS:
-                            should_send_as_file = True
-                            logger.info(
-                                f"[TerraLink] 图片尺寸过大 ({w}x{h})，转为文件发送"
-                            )
-                except Exception as e:
-                    logger.warning(f"[TerraLink] PIL check failed: {e}")
-
-            if should_send_as_file:
-                # OneBot V11 没有 MessageSegment.file，必须使用 upload_group_file API
-                # 并且通常需要传入本地路径
-
-                # 1. 准备临时目录
-                temp_dir = Path("data/terralink/temp")
-                temp_dir.mkdir(parents=True, exist_ok=True)
-                temp_file = temp_dir / file_name
-
-                try:
-                    # 2. 写入文件
-                    temp_file.write_bytes(img)
-                    abs_path = temp_file.resolve()
-
-                    await matcher.send("⚠️ 图片过大，正在以文件形式上传...")
-
-                    # 3. 调用 API 上传
-                    await bot.upload_group_file(
-                        group_id=event.group_id, file=str(abs_path), name=file_name
-                    )
-                except Exception as e:
-                    logger.error(f"[TerraLink] 文件上传API调用失败: {e}")
-                    await matcher.finish(f"⚠️ 文件上传失败: {e}")
-                finally:
-                    # 4. 清理临时文件
-                    if temp_file.exists():
-                        try:
-                            temp_file.unlink()
-                        except Exception:
-                            pass
-            else:
-                # 正常发送图片
-                await matcher.finish(MessageSegment.image(img))
-
-        except FinishedException:
-            raise
-        except Exception as e:
-            logger.error(f"[TerraLink] 发送失败: {e}")
-            await matcher.finish(f"⚠️ 发送失败: {e}")
-    else:
+    if not img:
         await matcher.finish("⚠️ 渲染结果为空 (Template returned None)")
+        return
+
+    try:
+        if _should_send_as_file(img):
+            file_name = f"terralink_{int(time.time())}.png"
+            file_uri = "base64://" + base64.b64encode(img).decode("ascii")
+            await matcher.send("⚠️ 图片过大，正在以文件形式上传...")
+            try:
+                await bot.upload_group_file(
+                    group_id=event.group_id, file=file_uri, name=file_name
+                )
+            except Exception as e:
+                logger.error(f"[TerraLink] 文件上传API调用失败: {e}")
+                await matcher.finish(f"⚠️ 文件上传失败: {e}")
+        else:
+            await matcher.finish(MessageSegment.image(img))
+    except FinishedException:
+        raise
+    except Exception as e:
+        logger.error(f"[TerraLink] 发送失败: {e}")
+        await matcher.finish(f"⚠️ 发送失败: {e}")
 
 
 # =============================================================================

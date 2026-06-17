@@ -2,7 +2,6 @@ import asyncio
 import json
 import websockets
 from websockets.exceptions import (
-    ConnectionClosed,
     ConnectionClosedError,
     ConnectionClosedOK,
 )

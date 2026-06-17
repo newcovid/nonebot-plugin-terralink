@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 from typing import List, Optional
 
 
@@ -15,7 +15,7 @@ class LinkConfig(BaseModel):
     name: str = "Terraria Server"
 
 
-class Config(BaseModel, extra=Extra.ignore):
+class Config(BaseModel, extra="ignore"):
     # 插件总开关
     terralink_enabled: bool = True
 

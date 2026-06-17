@@ -85,8 +85,8 @@ class BridgeService:
         try:
             bot = get_bot()
             await bot.send_group_msg(group_id=group_id, message=Message(message))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[TerraLink] 转发到群 {group_id} 失败: {e}")
 
 
 bridge = BridgeService()

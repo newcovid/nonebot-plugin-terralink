@@ -4,7 +4,6 @@ import uuid
 from typing import Optional, Any, Dict
 from nonebot import get_plugin_config
 from nonebot.log import logger
-import websockets
 
 from ..config import Config, LinkConfig
 from .models import (
