@@ -138,6 +138,12 @@ class RendererService:
 
             await page.set_content(html_content, wait_until="networkidle")
 
+            # 等待 Twemoji 执行完成（将 emoji 替换为 img 标签）
+            try:
+                await page.wait_for_selector("img.emoji", timeout=3000)
+            except Exception:
+                pass  # 没有 emoji 时超时是正常的
+
             try:
                 elem = await page.wait_for_selector(".tml-panel", timeout=5000)
                 return await elem.screenshot(type="png")
