@@ -1,6 +1,6 @@
 [project]
 name = "nonebot-plugin-terralink"
-version = "0.4.5"
+version = "0.4.6"
 description = "实现泰拉瑞亚 TModLoader 服务器与 QQ 群双向互通的 NoneBot2 插件"
 authors = [
     { name = "newcovid", email = "280310454@qq.com" },
@@ -29,3 +29,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["nonebot_plugin_terralink", "nonebot_plugin_terralink.*"]
+
+# [修复] 显式包含资源文件（模板、CSS 等），防止打包时遗漏
+[tool.setuptools.package-data]
+nonebot_plugin_terralink = ["resources/**/*.html", "resources/**/*.css"]
