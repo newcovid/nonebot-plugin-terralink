@@ -15,7 +15,7 @@ async def get_session(matcher, event: GroupMessageEvent) -> Session:
     """获取会话，如果未连接则直接结束"""
     session = manager.get_session_by_group(event.group_id)
     if not session or not session.is_ready:
-        await matcher.finish("❌ 当前群未绑定 TML 服务器或服务器未连接")
+        await matcher.finish("当前群未绑定 TML 服务器或服务器未连接")
     return session
 
 
@@ -31,14 +31,14 @@ async def execute_and_reply(
             command, args, timeout
         )
     except asyncio.TimeoutError:
-        await matcher.finish("⚠️ 请求超时：服务器响应过慢。")
+        await matcher.finish("请求超时：服务器响应过慢。")
     except Exception as e:
-        await matcher.finish(f"⚠️ 请求异常: {e}")
+        await matcher.finish(f"请求异常: {e}")
 
     if response.status != "success":
         # 如果服务器返回 error 状态，直接报错
         err_msg = response.message or "未知错误"
-        await matcher.finish(f"❌ 操作失败: {err_msg}")
+        await matcher.finish(f"操作失败: {err_msg}")
 
     # 返回 data 字典 (可能是 None，转为空字典防止报错)
     return response.data if isinstance(response.data, dict) else {}
@@ -67,7 +67,7 @@ async def _(event: GroupMessageEvent, args: Message = CommandArg()):
     # 解析返回数据
     target = data.get("target", "未知")
     reason = data.get("reason", "无")
-    await kick.finish(f"🦵 已踢出玩家 [{target}]\n📝 原因: {reason}")
+    await kick.finish(f"已踢出玩家 [{target}]\n原因: {reason}")
 
 
 # --- 2. 杀怪 (Butcher) ---
@@ -81,7 +81,7 @@ async def _(event: GroupMessageEvent):
 
     # [Update] 匹配文档 6.12: killedCount
     count = data.get("killedCount", 0)
-    await butcher.finish(f"🗡️ 已清理 {count} 个敌对生物。")
+    await butcher.finish(f"已清理 {count} 个敌对生物。")
 
 
 # --- 3. 给予物品 (Give) ---
@@ -106,7 +106,7 @@ async def _(event: GroupMessageEvent, args: Message = CommandArg()):
     item_name = data.get("item", params[1])
     amount = data.get("amount", 1)
 
-    await give.finish(f"🎁 已给予 {player} {amount} 个 [{item_name}]。")
+    await give.finish(f"已给予 {player} {amount} 个 [{item_name}]。")
 
 
 # --- 4. 给予Buff (Buff) ---
@@ -136,7 +136,7 @@ async def _(event: GroupMessageEvent, args: Message = CommandArg()):
     buff_name = data.get("buff", "未知Buff")
     duration = data.get("duration", 0)
 
-    await buff.finish(f"💊 已给予 {targets_str} 效果: {buff_name} ({duration}秒)。")
+    await buff.finish(f"已给予 {targets_str} 效果: {buff_name} ({duration}秒)。")
 
 
 # --- 5. 保存世界 (Save) ---
@@ -148,7 +148,7 @@ async def _(event: GroupMessageEvent):
     session = await get_session(save, event)
     # save 指令通常较慢，稍微增加超时
     await execute_and_reply(save, session, "save", timeout=20.0)
-    await save.finish("💾 世界存档已成功保存。")
+    await save.finish("世界存档已成功保存。")
 
 
 # --- 6. 沉降液体 (Settle) ---
@@ -159,7 +159,7 @@ settle = on_command("settle", priority=5, permission=SUPERUSER, block=True)
 async def _(event: GroupMessageEvent):
     session = await get_session(settle, event)
     await execute_and_reply(settle, session, "settle", timeout=30.0)
-    await settle.finish("💧 液体沉降计算完成。")
+    await settle.finish("液体沉降计算完成。")
 
 
 # --- 7. 修改/查询时间 (Time) ---
@@ -188,14 +188,14 @@ async def _(event: GroupMessageEvent, args: Message = CommandArg()):
 
     # [Update] 匹配文档 6.3: timeString, isDay, moonPhase
     time_str = data.get("timeString", "??:??")
-    is_day = "☀️ 白天" if data.get("isDay") else "🌙 夜晚"
+    is_day = "白天" if data.get("isDay") else "夜晚"
     phase = data.get("moonPhase", "")
     action = data.get("action", "query")
 
     if action == "set":
-        await time_cmd.finish(f"⏰ 时间已修改为: {time_str} ({is_day})")
+        await time_cmd.finish(f"时间已修改为: {time_str} ({is_day})")
     else:
-        await time_cmd.finish(f"🕰️ 当前时间: {time_str} ({is_day})\n🌔 月相: {phase}")
+        await time_cmd.finish(f"当前时间: {time_str} ({is_day})\n月相: {phase}")
 
 
 # --- 8. 资源导出 (ExportAssets) ---
@@ -208,7 +208,7 @@ export = on_command(
 async def _(event: GroupMessageEvent):
     # 直接拦截，不允许通过 Bot 远程执行
     msg = (
-        "⛔ 资源导出指令 (exportassets) 极其消耗服务器性能且耗时较长。\n"
+        "资源导出指令 (exportassets) 极其消耗服务器性能且耗时较长。\n"
         "为了防止服务器卡死或超时，请直接在服务器控制台或单人游戏中执行此指令。"
     )
     await export.finish(msg)
@@ -230,7 +230,7 @@ async def _(event: GroupMessageEvent, args: Message = CommandArg()):
     # 透传指令也应该有回显
     response: CommandResponsePacket = await session.execute_command(parts[0], parts[1:])
 
-    status_icon = "✅" if response.status == "success" else "❌"
+    status_icon = "OK" if response.status == "success" else "ERR"
     reply = f"{status_icon} [{response.status}] {response.message}"
 
     await raw_cmd.finish(reply)

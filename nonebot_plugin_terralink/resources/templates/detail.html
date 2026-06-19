@@ -110,13 +110,13 @@
 <div class="grid-container">
     {% for npc in data.droppedBy %}
     <div class="source-chip">
-        <span>⚔️ {{ npc.name }}</span>
+        <span>{{ npc.name }}</span>
     </div>
     {% endfor %}
 
     {% for npc in data.soldBy %}
     <div class="source-chip" style="border-color: #ffce45;">
-        <span>💰 {{ npc.name }}</span>
+        <span>{{ npc.name }}</span>
     </div>
     {% endfor %}
 </div>

@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="panel-header">
-    <span class="panel-title">🎒 {{ data.playerName }} 的背包</span>
+    <span class="panel-title">{{ data.playerName }} 的背包</span>
 </div>
 
 <!-- [Layout Update] 优化布局，左侧主背包，右侧多列并排 -->
@@ -67,7 +67,7 @@
 <div class="row">
     {% if data.piggy %}
     <div class="col" style="background: rgba(255,100,100,0.1); padding: 5px; border-radius: 4px;">
-        <span style="font-size: 12px; text-align: center;">🐷 猪猪存钱罐</span>
+        <span style="font-size: 12px; text-align: center;">猪猪存钱罐</span>
         <div class="grid-container" style="justify-content: center;">
             {% for item in data.piggy %}
             {{ macros.item_slot(item) }}
@@ -78,7 +78,7 @@
 
     {% if data.vault %}
     <div class="col" style="background: rgba(100,100,255,0.1); padding: 5px; border-radius: 4px;">
-        <span style="font-size: 12px; text-align: center;">🔒 虚空保险库</span>
+        <span style="font-size: 12px; text-align: center;">虚空保险库</span>
         <div class="grid-container" style="justify-content: center;">
             {% for item in data.vault %}
             {{ macros.item_slot(item) }}

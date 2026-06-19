@@ -66,9 +66,9 @@ class BridgeService:
         prefix = f"[{session.server_name}] "
         msg = ""
         if packet.event_type == "world_load":
-            msg = f"🌍 世界已加载: {packet.world_name}\n📝 {packet.motd}"
+            msg = f"世界已加载: {packet.world_name}\n{packet.motd}"
         elif packet.event_type == "world_unload":
-            msg = f"🛑 服务器已停止: {packet.world_name}"
+            msg = f"服务器已停止: {packet.world_name}"
 
         if msg:
             await self._send_to_group(session.group_id, prefix + msg)

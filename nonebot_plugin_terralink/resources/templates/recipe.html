@@ -18,7 +18,7 @@
             {% if main_recipe.stations[0].imagePath %}
             <img src="{{ to_img_url(main_recipe.stations[0].imagePath) }}">
             {% else %}
-            <span style="font-size: 10px;">🛠️</span>
+            <span style="font-size: 10px;">?</span>
             {% endif %}
         </div>
         {% endif %}
@@ -51,7 +51,7 @@
         {% if tree_node.reference %}
         <div style="position: absolute; top: -6px; left: -6px; width: 16px; height: 16px; background: #2b3055; border-radius: 50%; color: #4ff; font-size: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #4ff; z-index: 10; box-shadow: 0 0 2px #000;"
             title="合成路线已在别处展示">
-            🔗
+            *
         </div>
         {% endif %}
 
@@ -70,7 +70,7 @@
 
 
 <div class="panel-header">
-    <span class="panel-title">🔨 合成树: {{ data.root.item.name }}</span>
+    <span class="panel-title">合成树: {{ data.root.item.name }}</span>
     <span style="font-size: 14px; color: #aaa;">{{ data.root.item.mod }}</span>
 </div>
 
@@ -97,7 +97,7 @@
     <div
         style="display: flex; gap: 10px; font-size: 12px; color: #bbb; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 4px;">
         <div style="display: flex; align-items: center; gap: 4px;">
-            <span style="color: #4ff; font-weight: bold;">🔗</span> <span>参考别处</span>
+            <span style="color: #4ff; font-weight: bold;">*</span> <span>参考别处</span>
         </div>
         <div style="display: flex; align-items: center; gap: 4px;">
             <span style="color: #ffce45; font-weight: bold;">↺</span> <span>循环配方</span>
@@ -154,10 +154,10 @@
                 {% if r.stations[0].imagePath %}
                 <img src="{{ to_img_url(r.stations[0].imagePath) }}" style="width: 24px; height: 24px;">
                 {% else %}
-                <span style="font-size: 16px;">🛠️</span>
+                <span style="font-size: 16px;">?</span>
                 {% endif %}
                 {% else %}
-                <span style="font-size: 12px;">✋</span>
+                <span style="font-size: 12px;">-</span>
                 {% endif %}
             </div>
             <span style="font-size: 20px; font-weight: bold; color: #666;">➔</span>

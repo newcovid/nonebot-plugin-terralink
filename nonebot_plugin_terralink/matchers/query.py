@@ -40,7 +40,7 @@ async def get_session(matcher: Matcher, event: GroupMessageEvent) -> Session:
     """获取会话，如果失败则回复提示"""
     session = manager.get_session_by_group(event.group_id)
     if not session or not session.is_ready:
-        await matcher.finish("❌ 未连接到服务器，请检查游戏端状态。")
+        await matcher.finish("未连接到服务器，请检查游戏端状态。")
     return session
 
 
@@ -51,12 +51,12 @@ async def execute_query(
     try:
         response = await session.execute_command(command, args, timeout=30.0)
     except asyncio.TimeoutError:
-        await matcher.finish("⚠️ 查询超时，请稍后再试。")
+        await matcher.finish("查询超时，请稍后再试。")
     except Exception as e:
-        await matcher.finish(f"⚠️ 查询异常: {e}")
+        await matcher.finish(f"查询异常: {e}")
 
     if response.status != "success":
-        await matcher.finish(f"❌ 查询失败: {response.message}")
+        await matcher.finish(f"查询失败: {response.message}")
 
     return response.data
 
@@ -104,33 +104,33 @@ async def render_and_finish(
     except Exception as e:
         logger.error(f"[TerraLink] 图片渲染未捕获异常:\n{traceback.format_exc()}")
         await matcher.finish(
-            f"⚠️ 图片渲染失败: {type(e).__name__} - {e}\n(详情请检查控制台日志)"
+            f"图片渲染失败: {type(e).__name__} - {e}\n(详情请检查控制台日志)"
         )
         return
 
     if not img:
-        await matcher.finish("⚠️ 渲染结果为空 (Template returned None)")
+        await matcher.finish("渲染结果为空 (Template returned None)")
         return
 
     try:
         if _should_send_as_file(img):
             file_name = f"terralink_{int(time.time())}.png"
             file_uri = "base64://" + base64.b64encode(img).decode("ascii")
-            await matcher.send("⚠️ 图片过大，正在以文件形式上传...")
+            await matcher.send("图片过大，正在以文件形式上传...")
             try:
                 await bot.upload_group_file(
                     group_id=event.group_id, file=file_uri, name=file_name
                 )
             except Exception as e:
                 logger.error(f"[TerraLink] 文件上传API调用失败: {e}")
-                await matcher.finish(f"⚠️ 文件上传失败: {e}")
+                await matcher.finish(f"文件上传失败: {e}")
         else:
             await matcher.finish(MessageSegment.image(img))
     except FinishedException:
         raise
     except Exception as e:
         logger.error(f"[TerraLink] 发送失败: {e}")
-        await matcher.finish(f"⚠️ 发送失败: {e}")
+        await matcher.finish(f"发送失败: {e}")
 
 
 # =============================================================================
@@ -212,7 +212,7 @@ async def _(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
     raw_data = await execute_query(inv_cmd, session, "inv", params)
 
     if not raw_data:
-        await inv_cmd.finish("❌ 未找到该玩家或数据为空")
+        await inv_cmd.finish("未找到该玩家或数据为空")
 
     data = PlayerInventoryDto(**raw_data)
     await render_and_finish(bot, inv_cmd, event, renderer.render_inventory, data)
@@ -248,7 +248,7 @@ async def _(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
     raw_data = await execute_query(query_cmd, session, "query", params)
 
     if not raw_data:
-        await query_cmd.finish("❌ 未找到物品 (请尝试用ID或完整名称)")
+        await query_cmd.finish("未找到物品 (请尝试用ID或完整名称)")
 
     data = ItemDetailDto(**raw_data)
     await render_and_finish(bot, query_cmd, event, renderer.render_detail, data)
@@ -268,7 +268,7 @@ async def _(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
     raw_data = await execute_query(recipe_cmd, session, "recipe", params)
 
     if not raw_data:
-        await recipe_cmd.finish("❌ 未找到物品或无合成数据")
+        await recipe_cmd.finish("未找到物品或无合成数据")
 
     data = RecipeDataDto(**raw_data)
     await render_and_finish(bot, recipe_cmd, event, renderer.render_recipe, data)
