@@ -16,6 +16,13 @@ from .models import (
 plugin_config = get_plugin_config(Config)
 
 
+def _normalize_group_id(group_id: Any) -> Optional[int]:
+    try:
+        return int(group_id)
+    except (TypeError, ValueError):
+        return None
+
+
 class Session:
     """
     代表一个 TML 服务器连接实例
@@ -157,7 +164,30 @@ class SessionManager:
             logger.info(f"[TerraLink] Disconnected: {session.server_name}")
 
     def get_session_by_group(self, group_id: int) -> Optional[Session]:
-        return self._sessions_by_group.get(group_id)
+        normalized_group_id = _normalize_group_id(group_id)
+        if normalized_group_id is None:
+            logger.warning(
+                f"[TerraLink] Invalid group_id for session lookup: {group_id!r}"
+            )
+            return None
+
+        session = self._sessions_by_group.get(normalized_group_id)
+        if session and session.is_ready:
+            return session
+
+        # Self-heal the group index if it was missed or became stale.
+        if session and not session.is_ready:
+            self._sessions_by_group.pop(normalized_group_id, None)
+
+        for candidate in self._sessions_by_ws.values():
+            if candidate.is_ready and candidate.group_id == normalized_group_id:
+                self._sessions_by_group[normalized_group_id] = candidate
+                logger.warning(
+                    f"[TerraLink] Rebuilt missing group session index for group {normalized_group_id}"
+                )
+                return candidate
+
+        return None
 
     def authenticate(self, ws: Any, token: str) -> bool:
         session = self._sessions_by_ws.get(ws)
@@ -172,12 +202,21 @@ class SessionManager:
             logger.warning(f"[TerraLink] Auth Failed: Token '{token}' not found")
             return False
 
+        group_id = _normalize_group_id(matched_config.group_id)
+        if group_id is None:
+            logger.warning(
+                f"[TerraLink] Auth Failed: Invalid group_id for token '{token}': "
+                f"{matched_config.group_id!r}"
+            )
+            return False
+
+        matched_config.group_id = group_id
         session.config = matched_config
         session._authenticated = True
-        self._sessions_by_group[matched_config.group_id] = session
+        self._sessions_by_group[group_id] = session
 
         logger.success(
-            f"[TerraLink] Auth Success: [{matched_config.name}] <-> [Group {matched_config.group_id}]"
+            f"[TerraLink] Auth Success: [{matched_config.name}] <-> [Group {group_id}]"
         )
         return True
 

@@ -1,5 +1,6 @@
 from nonebot import on_message, get_plugin_config
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent
+from nonebot.log import logger
 from nonebot.rule import Rule
 
 from ..config import Config
@@ -14,8 +15,13 @@ async def is_bound_group(event: GroupMessageEvent) -> bool:
     """
     if not plugin_config.terralink_enabled:
         return False
+    try:
+        group_id = int(event.group_id)
+    except (TypeError, ValueError):
+        logger.warning(f"[TerraLink] 收到无效群号的群消息: {event.group_id!r}")
+        return False
     return any(
-        link.group_id == event.group_id for link in plugin_config.terralink_links
+        int(link.group_id) == group_id for link in plugin_config.terralink_links
     )
 
 
@@ -30,6 +36,9 @@ async def _(bot: Bot, event: GroupMessageEvent):
 
     # 未连接则忽略
     if not session or not session.is_ready:
+        logger.debug(
+            f"[TerraLink] 群 {event.group_id} 的消息未转发：未找到已认证的 TML 连接"
+        )
         return
 
     # 2. 文本过滤
@@ -45,4 +54,5 @@ async def _(bot: Bot, event: GroupMessageEvent):
 
     # 4. 发送 Chat 包
     # 这里不需要 execute_command 等待回复，因为聊天是推流式的
-    await session.send_chat(user_name, text)
+    if not await session.send_chat(user_name, text):
+        logger.warning(f"[TerraLink] 群 {event.group_id} 的消息发送到 TML 失败")
