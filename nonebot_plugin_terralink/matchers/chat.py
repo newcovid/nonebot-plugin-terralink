@@ -5,6 +5,7 @@ from nonebot.rule import Rule
 
 from ..config import Config
 from ..core.connection import manager
+from ..services.group_settings import group_settings
 
 plugin_config = get_plugin_config(Config)
 
@@ -46,7 +47,14 @@ async def _(bot: Bot, event: GroupMessageEvent):
     if not text:
         return
     # 忽略可能是指令的消息
-    if text.startswith(("/", "#", ".")):
+    command_prefix = plugin_config.terralink_cmd_prefix
+    if text.startswith(("/", "#", ".")) or (
+        command_prefix and text.startswith(command_prefix)
+    ):
+        return
+
+    if not group_settings.is_group_to_server_enabled(event.group_id):
+        logger.debug(f"[TerraLink] 群 {event.group_id} 的群服互通已关闭")
         return
 
     # 3. 构造发送者名称 (优先使用群名片)

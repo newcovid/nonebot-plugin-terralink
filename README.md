@@ -85,6 +85,9 @@ terralink_cmd_prefix=/
 # Example: "/www/program/nonebot2/lolbot/data/terralink/tmodass" or "data/terralink/tmodass"
 terralink_resource_path=""
 
+# Group management settings file path. Leave empty to use data/terralink/group_settings.json
+terralink_state_path=""
+
 # Multi-Server Mapping List (JSON Format)
 terralink_links=[
     {"token": "your_secret_token_1", "group_id": 123456789, "name": "Survival Server"},
@@ -95,6 +98,18 @@ terralink_links=[
 ---
 
 ## 💻 Commands
+
+### 0. Group Management Commands (SuperUser / Group Owner / Group Admin)
+
+Control TerraLink forwarding behavior per QQ group. Settings are persisted. All switches are enabled by default to preserve existing behavior.
+
+- **Show status**: `/terralink status`
+- **Toggle event broadcasts**: `/terralink event <on/off>`
+- **Toggle two-way chat bridge**: `/terralink bridge <on/off>`
+- **Toggle QQ group to server chat only**: `/terralink group <on/off>`
+- **Toggle server to QQ group chat only**: `/terralink server <on/off>`
+- **Reset group settings**: `/terralink reset`
+- **Aliases**: `tl`, `群服管理`
 
 ### 1. Admin Commands (SuperUser Only)
 

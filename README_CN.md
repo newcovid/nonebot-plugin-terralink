@@ -85,6 +85,9 @@ terralink_cmd_prefix=/
 # 示例:"/www/program/nonebot2/lolbot/data/terralink/tmodass"或"data/terralink/tmodass"
 terralink_resource_path=""
 
+# 群管理开关持久化文件路径，可留空使用默认值 data/terralink/group_settings.json
+terralink_state_path=""
+
 # 多服务器映射列表 (JSON 格式)
 terralink_links=[
     {"token": "your_secret_token_1", "group_id": 123456789, "name": "生存服"},
@@ -95,6 +98,18 @@ terralink_links=[
 ---
 
 ## 💻 指令列表
+
+### 0. 群管理指令 (SuperUser / 群主 / 群管理员可用)
+
+用于按群控制 TerraLink 的转发行为，设置会持久化保存。默认全部开启，兼容旧版本行为。
+
+- **查看状态**: `/terralink status`
+- **开关事件播报**: `/terralink event <on/off>`
+- **开关双向群服互通**: `/terralink bridge <on/off>`
+- **仅开关群到服聊天**: `/terralink group <on/off>`
+- **仅开关服到群聊天**: `/terralink server <on/off>`
+- **重置本群设置**: `/terralink reset`
+- **别名**: `tl`, `群服管理`
 
 ### 1. 管理指令 (仅 SuperUser 可用)
 

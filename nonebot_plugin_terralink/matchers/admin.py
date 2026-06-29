@@ -3,10 +3,12 @@ from typing import Any, Dict
 from nonebot import on_command
 from nonebot.params import CommandArg
 from nonebot.adapters.onebot.v11 import Message, GroupMessageEvent
+from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
 from nonebot.permission import SUPERUSER
 
 from ..core.connection import manager, Session
 from ..core.models import CommandResponsePacket
+from ..services.group_settings import GroupSettings, group_settings
 
 # --- 辅助函数 ---
 
@@ -47,6 +49,102 @@ async def execute_and_reply(
 # =============================================================================
 # 指令实现
 # =============================================================================
+
+GROUP_MANAGER = SUPERUSER | GROUP_OWNER | GROUP_ADMIN
+
+
+def _format_switch(enabled: bool) -> str:
+    return "开启" if enabled else "关闭"
+
+
+def _format_group_settings(settings: GroupSettings) -> str:
+    return (
+        "TerraLink 群管理状态:\n"
+        f"- 事件播报: {_format_switch(settings.event_broadcast)}\n"
+        f"- 群 -> 服聊天: {_format_switch(settings.group_to_server)}\n"
+        f"- 服 -> 群聊天: {_format_switch(settings.server_to_group)}"
+    )
+
+
+def _parse_switch(value: str) -> bool:
+    normalized = value.strip().lower()
+    if normalized in {"on", "enable", "enabled", "true", "1", "开", "开启", "启用"}:
+        return True
+    if normalized in {"off", "disable", "disabled", "false", "0", "关", "关闭", "禁用"}:
+        return False
+    raise ValueError("开关值只能是 on/off、开/关")
+
+
+# --- 0. 群管理设置 ---
+manage = on_command(
+    "terralink",
+    aliases={"tl", "群服管理"},
+    priority=5,
+    permission=GROUP_MANAGER,
+    block=True,
+)
+
+
+@manage.handle()
+async def _(event: GroupMessageEvent, args: Message = CommandArg()):
+    params = args.extract_plain_text().strip().split()
+
+    if not params or params[0].lower() in {"status", "状态"}:
+        await manage.finish(_format_group_settings(group_settings.get(event.group_id)))
+
+    action = params[0].lower()
+    try:
+        if action in {"event", "events", "播报", "事件"}:
+            if len(params) < 2:
+                await manage.finish("用法: /terralink event <on/off>")
+            settings = group_settings.update(
+                event.group_id, event_broadcast=_parse_switch(params[1])
+            )
+            await manage.finish(_format_group_settings(settings))
+
+        if action in {"bridge", "chat", "互通", "聊天"}:
+            if len(params) < 2:
+                await manage.finish("用法: /terralink bridge <on/off>")
+            enabled = _parse_switch(params[1])
+            settings = group_settings.update(
+                event.group_id, group_to_server=enabled, server_to_group=enabled
+            )
+            await manage.finish(_format_group_settings(settings))
+
+        if action in {"group", "群到服", "g2s"}:
+            if len(params) < 2:
+                await manage.finish("用法: /terralink group <on/off>")
+            settings = group_settings.update(
+                event.group_id, group_to_server=_parse_switch(params[1])
+            )
+            await manage.finish(_format_group_settings(settings))
+
+        if action in {"server", "服到群", "s2g"}:
+            if len(params) < 2:
+                await manage.finish("用法: /terralink server <on/off>")
+            settings = group_settings.update(
+                event.group_id, server_to_group=_parse_switch(params[1])
+            )
+            await manage.finish(_format_group_settings(settings))
+
+        if action in {"reset", "重置"}:
+            settings = group_settings.reset(event.group_id)
+            await manage.finish(
+                "已重置本群 TerraLink 管理设置。\n"
+                + _format_group_settings(settings)
+            )
+    except ValueError as e:
+        await manage.finish(str(e))
+
+    await manage.finish(
+        "用法:\n"
+        "/terralink status - 查看状态\n"
+        "/terralink event <on/off> - 开关事件播报\n"
+        "/terralink bridge <on/off> - 开关双向群服互通\n"
+        "/terralink group <on/off> - 开关群到服聊天\n"
+        "/terralink server <on/off> - 开关服到群聊天\n"
+        "/terralink reset - 重置为默认开启"
+    )
 
 # --- 1. 踢人 (Kick) ---
 kick = on_command("kick", priority=5, permission=SUPERUSER, block=True)

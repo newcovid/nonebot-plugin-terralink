@@ -36,3 +36,7 @@ class Config(BaseModel, extra="ignore"):
     # 用于存放从 exportassets 导出的图片，或手动解包的资源
     # 如果为空，则强制使用纯文本模式
     terralink_resource_path: Optional[str] = None
+
+    # 群管理开关持久化文件路径
+    # 默认写入 NoneBot 工作目录下的 data/terralink/group_settings.json
+    terralink_state_path: Optional[str] = None

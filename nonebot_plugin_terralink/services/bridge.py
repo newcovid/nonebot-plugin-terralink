@@ -5,6 +5,7 @@ from nonebot.log import logger
 
 from ..core.models import AuthPacket, ChatPacket, EventPacket, CommandResponsePacket
 from ..core.connection import Session, manager
+from .group_settings import group_settings
 
 
 class BridgeService:
@@ -55,6 +56,10 @@ class BridgeService:
             pass
 
     async def _handle_chat(self, session: Session, packet: ChatPacket):
+        if not group_settings.is_server_to_group_enabled(session.group_id):
+            logger.debug(f"[TerraLink] 群 {session.group_id} 的服务器聊天转发已关闭")
+            return
+
         clean_message = self._clean_text(packet.message)
         if packet.user_name in ["RCON", "Server", "System"]:
             msg = clean_message
@@ -63,6 +68,10 @@ class BridgeService:
         await self._send_to_group(session.group_id, msg)
 
     async def _handle_event(self, session: Session, packet: EventPacket):
+        if not group_settings.is_event_enabled(session.group_id):
+            logger.debug(f"[TerraLink] 群 {session.group_id} 的事件播报已关闭")
+            return
+
         prefix = f"[{session.server_name}] "
         msg = ""
         if packet.event_type == "world_load":
