@@ -10,12 +10,12 @@
 
 # nonebot-plugin-terralink
 
-_✨ A NoneBot2 plugin for two-way communication between Terraria TModLoader servers and QQ Groups ✨_
+_✨ A NoneBot2 plugin for two-way communication between Terraria tModLoader servers and QQ groups ✨_
 
 <a href="./LICENSE">
     <img src="https://img.shields.io/github/license/newcovid/nonebot-plugin-terralink.svg" alt="license">
 </a>
-<a href="https://pypi.python.org/pypi/nonebot-plugin-terralink">
+<a href="https://pypi.org/project/nonebot-plugin-terralink/">
     <img src="https://img.shields.io/pypi/v/nonebot-plugin-terralink.svg" alt="pypi">
 </a>
 <img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="python">
@@ -24,23 +24,35 @@ _✨ A NoneBot2 plugin for two-way communication between Terraria TModLoader ser
 
 ## 📖 Introduction
 
-**TerraLink** is a NoneBot2 plugin designed to bridge Terraria TModLoader servers with QQ groups. Using the WebSocket protocol, it connects to the TML mod client to synchronize in-game chat and events to QQ groups in real-time. It also supports sending management commands from QQ to the game server, querying item recipes, viewing player inventories, and more.
+**TerraLink** is a NoneBot2 plugin designed to bridge Terraria tModLoader servers with QQ groups. Using the WebSocket protocol, it connects to the companion TML mod to synchronize in-game chat and events to QQ groups in real time. It also supports sending management commands from QQ to the game server, querying item recipes, viewing player inventories, and more.
 
 ### Core Features
 
 - 🔗 **Two-way Communication**: Real-time sync of game chat ↔ QQ group messages.
-- 🎨 **Rich Text Rendering**: Beautiful image responses based on HTML/CSS (Item details, Inventory, Recipe trees, etc.).
-- 🎮 **Complete Command System**: Supports 16+ server management and query commands.
-- 🔐 **Secure Authentication**: Token-based authentication system.
-- 📱 **Multi-Server Support**: One Bot can manage multiple TML servers simultaneously.
-- 🚀 **High Performance**: Built on asyncio and websockets.
+- 🎨 **Rich Text Rendering**: Image responses based on HTML/CSS for item details, inventories, recipe trees, and other structured data.
+- 🎮 **Complete Command System**: Supports 16+ server-management and query commands.
+- 🔐 **Secure Authentication**: Token-based authentication between the bot and game server.
+- 📱 **Multi-Server Support**: One bot can manage multiple tModLoader servers simultaneously.
+- 🚀 **Asynchronous Architecture**: Built on `asyncio` and `websockets`.
+
+## 🌍 Reach and Impact
+
+TerraLink maintains an open-source interoperability layer between three distinct ecosystems: **NoneBot2/OneBot bots, QQ group communities, and Terraria tModLoader servers**. It addresses a specialized integration gap that is not covered by either ecosystem on its own.
+
+- **Public distribution**: The Python plugin is released on [PyPI](https://pypi.org/project/nonebot-plugin-terralink/), while the companion `TerraNoneBridge` mod is distributed through the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3617766364).
+- **Operational scope**: The project combines bidirectional chat, event forwarding, remote administration, server monitoring, item and recipe queries, inventory rendering, authentication, and multi-server routing.
+- **Reusable protocol boundary**: The communication contract is documented in both [Chinese](TerraNoneBridge通信文档.md) and [English](TerraNoneBridge_Protocol.md), making the integration auditable and easier to extend.
+- **Bilingual maintenance**: User-facing setup, configuration, command references, and protocol documentation are maintained in both Chinese and English.
+- **Community infrastructure**: The project is intended for self-hosted game-server operators and community maintainers who need reliable communication between in-game services and external group-management workflows.
+
+Adoption and release evidence is kept on the linked public distribution pages rather than hard-coded here, so the figures remain current and independently verifiable.
 
 ## 💿 Installation
 
 <details open>
 <summary>Install using nb-cli</summary>
 
-Open the command line in your nonebot2 project root and run:
+Open the command line in your NoneBot2 project root and run:
 
 ```bash
 nb plugin install nonebot-plugin-terralink
@@ -49,18 +61,13 @@ nb plugin install nonebot-plugin-terralink
 </details>
 
 <details>
-<summary>Install using package manager</summary>
+<summary>Install using a package manager</summary>
 
-In your nonebot2 plugin directory, run the appropriate command:
-
-<details>
-<summary>pip</summary>
+In your NoneBot2 project, run:
 
 ```bash
 pip install nonebot-plugin-terralink
 ```
-
-</details>
 
 </details>
 
@@ -69,26 +76,29 @@ pip install nonebot-plugin-terralink
 Configure the following options in your NoneBot `.env` or `.env.prod` file:
 
 ```env
-# Plugin Master Switch
+# Plugin master switch
 terralink_enabled=true
 
-# WebSocket Listening Port (TModLoader connects to this port)
+# WebSocket listening port (the tModLoader side connects to this port)
 terralink_port=7778
 
-# Command Prefix (Used to identify commands in QQ groups)
+# Command prefix used in QQ groups
 terralink_cmd_prefix=/
 
-# Resource path (Required, used to load local textures)
-# How to obtain resources: Can only be obtained by installing the TerraNoneBridge mod in the game client. First, configure the mod configuration item "Custom export path".
-# An example of "Custom export path" is: "D:\desktop\temp\tmodass". You need to create an empty folder for resource export, such as tmodass, so that resources will not be scattered into the upper directory.
-# Use the "/tnb exportassets" command in single-player or local host mode to export resources, and manually place the resources in a location accessible to the server.
-# Example: "/www/program/nonebot2/lolbot/data/terralink/tmodass" or "data/terralink/tmodass"
+# Resource path (required for loading local textures)
+# Resources can only be exported by installing the TerraNoneBridge mod in a game client.
+# Configure the mod's custom export path first, create an empty export directory,
+# and run "/tnb exportassets" in single-player or local-host mode.
+# Then place the exported resources somewhere accessible to the bot server.
+# Examples: "/www/program/nonebot2/lolbot/data/terralink/tmodass"
+#           "data/terralink/tmodass"
 terralink_resource_path=""
 
-# Group management settings file path. Leave empty to use data/terralink/group_settings.json
+# Persistent group-management state file. Leave empty to use
+# data/terralink/group_settings.json
 terralink_state_path=""
 
-# Multi-Server Mapping List (JSON Format)
+# Multi-server mapping list (JSON format)
 terralink_links=[
     {"token": "your_secret_token_1", "group_id": 123456789, "name": "Survival Server"},
     {"token": "your_secret_token_2", "group_id": 987654321, "name": "Calamity Server"}
@@ -133,9 +143,8 @@ Kill all hostile mobs in the server.
 ![butcher preview](/imgs/butcher.png)
 
 #### 📤 `exportassets`
-Export in-game resources (textures, etc.). This is a time-consuming operation. The Bot intercepts this command to prevent accidental triggers.
+Export in-game resources such as textures. This is a time-consuming operation, and the bot intercepts the command to prevent accidental triggers.
 - **Command**: `/export` or `/exportassets`
-
 
 #### 🎁 `give`
 Give items to a specific player.
@@ -150,13 +159,13 @@ Kick a player from the server.
 ![kick preview](/imgs/kick.png)
 
 #### 💾 `save`
-Force save the world.
+Force-save the world.
 - **Command**: `/save`
 
 ![save preview](/imgs/save.png)
 
 #### 💧 `settle`
-Force settle all liquids in the world.
+Force all liquids in the world to settle.
 - **Command**: `/settle`
 
 ![settle preview](/imgs/settle.png)
@@ -164,7 +173,7 @@ Force settle all liquids in the world.
 #### ⏰ `time`
 Query or set the world time.
 - **Command**: `/time [dawn/noon/dusk/midnight]`
-- **Note**: Query time if no argument is provided; set time otherwise.
+- **Note**: Query the time when no argument is provided; set it otherwise.
 
 ![time preview](/imgs/time.png)
 
@@ -194,28 +203,28 @@ Show the list of currently online players.
 ![list preview](/imgs/list.png)
 
 #### 🔍 `query`
-Query item details (stats, drops, NPC sales, simple recipes).
+Query item details, including stats, drops, NPC sales, and simple recipes.
 - **Command**: `/query <ItemName/ID>`
 - **Aliases**: `查询`, `属性`
 
 ![query preview](/imgs/query.png)
 
 #### 🔨 `recipe`
-Generate a complete crafting tree image for an item, including all raw materials.
+Generate a complete crafting-tree image for an item, including all raw materials.
 - **Command**: `/recipe <ItemName/ID>`
 - **Aliases**: `合成`, `配方`
 
 ![recipe preview](/imgs/recipe.png)
 
 #### 🔎 `search`
-Fuzzy search for item names.
+Fuzzy-search item names.
 - **Command**: `/search <keyword>`
 - **Aliases**: `搜索`, `查找`
 
 ![search preview](/imgs/search.png)
 
 #### 📊 `tps`
-View server performance status (TPS, memory, entity count, etc.).
+View server-performance status, including TPS, memory, and entity counts.
 - **Command**: `/tps`
 - **Aliases**: `status`, `性能`
 
@@ -223,15 +232,8 @@ View server performance status (TPS, memory, entity count, etc.).
 
 ---
 
-## 💰 Sponsor
-
-If you find this plugin helpful, consider buying the author a coffee ☕
-
-<div align="center">
-  <img src="/imgs/wechat.png" width="200" alt="WeChat Pay">
-  <img src="/imgs/alipay.png" width="200" alt="Alipay">
-</div>
-
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+Copyright © 2026 newcovid.
+
+This project is licensed under the [GNU General Public License v3.0 only](LICENSE) (`GPL-3.0-only`).
