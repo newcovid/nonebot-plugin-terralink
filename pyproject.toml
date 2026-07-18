@@ -7,8 +7,16 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "GPL-3.0" }
+license = "GPL-3.0-only"
 keywords = ["nonebot", "terraria", "tmodloader", "bridge", "server", "websocket"]
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "nonebot2>=2.3.0",
     "nonebot-adapter-onebot>=2.3.0",
@@ -20,6 +28,8 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/newcovid/nonebot-plugin-terralink"
 Documentation = "https://github.com/newcovid/nonebot-plugin-terralink#readme"
+Repository = "https://github.com/newcovid/nonebot-plugin-terralink"
+Issues = "https://github.com/newcovid/nonebot-plugin-terralink/issues"
 
 [build-system]
 requires = ["setuptools"]
