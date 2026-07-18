@@ -32,7 +32,7 @@ The project consists of this NoneBot2 plugin and the companion [`TerraNoneBridge
 
 TerraLink separates the tModLoader protocol, connection management, rendering, and command services from the bot-platform-facing message handlers. This makes the core integration reusable when adding support for other NoneBot2 adapters.
 
-The current release includes an **OneBot V11 group transport**. Its message events, group identifiers, and permission checks are adapter-specific. Supporting another NoneBot2 adapter requires a corresponding transport layer that maps that adapter's conversation and permission model onto TerraLink's existing core services; the tModLoader protocol and server-side integration do not need to be redesigned.
+The bundled transport currently targets **OneBot V11 group contexts**. Message events, conversation identifiers, and permission checks belong to this adapter-facing layer. Supporting another NoneBot2 adapter requires a transport implementation that maps its conversation and permission model onto TerraLink's existing core services; the tModLoader protocol and server-side integration do not need to be redesigned.
 
 ## Ecosystem and use cases
 
