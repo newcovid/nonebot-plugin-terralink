@@ -28,6 +28,8 @@ class ChatPacket(BasePacket):
     user_name: str
     message: str
     color: Optional[str] = None
+    # 消息分类: chat/join_leave/death/boss/event/npc/mod/server (旧版模组不携带)
+    category: Optional[str] = None
 
 
 class EventPacket(BasePacket):

@@ -69,12 +69,26 @@ After the connection is established, the client must send an authentication pack
 Messages proactively pushed by the server, no request ID required.
 
 ### 4.1 Chat Sync (`chat`)
-Triggered when an in-game player sends a message.
+Triggered when an in-game player sends a message, or when the server broadcasts a system message (boss, invasion, death, etc.).
 
 **Data Structure:**
 * **user_name**: Sender name (System messages are usually "Server")
-* **message**: Message content
+* **message**: Message content. Chat tags such as items (`[i:...]`) and colors (`[c/...:...]`) are already converted to readable text, e.g. `[Legendary Zenith]`.
 * **color**: Hex code of the message color
+* **category**: Message category (since mod 0.9.0; absent in older versions)
+
+| category | Description |
+| --- | --- |
+| `chat` | Player chat |
+| `join_leave` | Player join/leave |
+| `death` | Player death |
+| `boss` | Boss awakened/defeated and boss warnings |
+| `event` | Invasions, celestial events, world progression, teleports and other vanilla events |
+| `npc` | Town NPC arrival/death/departure |
+| `mod` | Broadcasts from other mods |
+| `server` | Console `say` messages |
+
+Messages disabled in the mod config (`EnableChatSync`, `EnableEventBroadcast`, `Broadcast*`, `BlockedKeywords`) are not sent at all.
 
 **Example:**
 ```json
@@ -83,6 +97,7 @@ Triggered when an in-game player sends a message.
   "user_name": "TerrarianPlayer",
   "message": "Hello from Terraria!",
   "color": "32FF82",
+  "category": "chat",
   "timestamp": 1715000200
 }
 ```

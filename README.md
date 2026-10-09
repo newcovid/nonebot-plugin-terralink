@@ -16,7 +16,7 @@
 
 **TerraLink** connects Terraria tModLoader servers to applications built with [NoneBot2](https://nonebot.dev/) through a documented WebSocket protocol. It exposes game-server events, operational controls, performance data, and game-content queries as bot-side capabilities that can be integrated into existing automation workflows.
 
-The project consists of this NoneBot2 plugin and the companion [`TerraNoneBridge`](https://steamcommunity.com/sharedfiles/filedetails/?id=3617766364) tModLoader mod. The two components communicate through an authenticated protocol and can be deployed independently.
+The project consists of this NoneBot2 plugin and the companion [`TerraNoneBridge`](https://steamcommunity.com/sharedfiles/filedetails/?id=3617766364) tModLoader mod ([source](https://github.com/newcovid/TerraNoneBridge)). The two components communicate through an authenticated protocol and can be deployed independently.
 
 ### Key capabilities
 
@@ -54,7 +54,7 @@ Using `pip`:
 pip install nonebot-plugin-terralink
 ```
 
-Install and configure the companion `TerraNoneBridge` mod on each tModLoader server that should connect to the bot.
+Install and configure the companion [`TerraNoneBridge`](https://github.com/newcovid/TerraNoneBridge) mod on each tModLoader server that should connect to the bot.
 
 ## Configuration
 
@@ -97,12 +97,27 @@ Each `token` must match the token configured in the corresponding `TerraNoneBrid
 In the bundled OneBot V11 transport, these commands are available to the SuperUser, group owner, and group administrators. Settings are persisted per bound group.
 
 - **Show status**: `/terralink status`
-- **Toggle event forwarding**: `/terralink event <on/off>`
+- **Toggle event forwarding**: `/terralink event <on/off>` (master switch for system broadcasts)
+- **Toggle event forwarding by category**: `/terralink filter <category/all> <on/off>`
 - **Toggle the complete bridge**: `/terralink bridge <on/off>`
 - **Toggle bot-to-server chat**: `/terralink group <on/off>`
-- **Toggle server-to-bot chat**: `/terralink server <on/off>`
+- **Toggle server-to-bot chat**: `/terralink server <on/off>` (everything sent from the server to the bot)
 - **Reset bridge settings**: `/terralink reset`
 - **Aliases**: `tl`, `群服管理`
+
+Broadcast categories accepted by `filter` (requires TerraNoneBridge 0.9.0 or later):
+
+| Category | Description |
+| --- | --- |
+| `join_leave` | Player join/leave |
+| `death` | Player deaths, including custom death reasons from other mods |
+| `boss` | Boss awakened/defeated and boss warnings |
+| `event` | Invasions, Blood Moon/eclipse, meteors, world progression (e.g. "Screams echo around you..."), player teleports and other vanilla events |
+| `npc` | Town NPC arrivals, deaths and departures |
+| `mod` | Server-wide broadcasts from other mods (e.g. damage reports, auto-fishing notices) |
+| `server` | Server start/stop notices and console `say` messages |
+
+Server operators can also filter at the source in the [mod config](https://github.com/newcovid/TerraNoneBridge#configuration) `ModConfigs/TerraNoneBridge_ServerConfig.json`: `EnableChatSync` controls two-way player chat, `EnableEventBroadcast` is the master switch for system broadcasts, the `Broadcast*` switches filter by the categories above, and `BlockedKeywords` drops messages containing specific keywords. Item, color and other chat tags are converted to readable text on the server before forwarding.
 
 ### Administrative commands
 

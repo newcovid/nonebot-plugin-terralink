@@ -16,7 +16,7 @@
 
 **TerraLink** 通过一套明确的 WebSocket 协议，将 Terraria tModLoader 服务器接入基于 [NoneBot2](https://nonebot.dev/) 构建的机器人应用。项目把游戏服务器事件、运维操作、性能数据和游戏内容查询封装成可集成到现有自动化工作流中的 Bot 侧能力。
 
-项目由本仓库中的 NoneBot2 插件和配套的 [`TerraNoneBridge`](https://steamcommunity.com/sharedfiles/filedetails/?id=3617766364) tModLoader 模组组成。两端通过带鉴权的协议通信，并可独立部署和升级。
+项目由本仓库中的 NoneBot2 插件和配套的 [`TerraNoneBridge`](https://steamcommunity.com/sharedfiles/filedetails/?id=3617766364) tModLoader 模组（[源码](https://github.com/newcovid/TerraNoneBridge)）组成。两端通过带鉴权的协议通信，并可独立部署和升级。
 
 ### 核心能力
 
@@ -54,7 +54,7 @@ nb plugin install nonebot-plugin-terralink
 pip install nonebot-plugin-terralink
 ```
 
-还需要在每个待接入的 tModLoader 服务器上安装并配置配套的 `TerraNoneBridge` 模组。
+还需要在每个待接入的 tModLoader 服务器上安装并配置配套的 [`TerraNoneBridge`](https://github.com/newcovid/TerraNoneBridge/blob/master/README_CN.md) 模组。
 
 ## 配置
 
@@ -96,12 +96,27 @@ terralink_links=[
 在内置的 OneBot V11 传输层中，以下指令可由 SuperUser、群主和群管理员使用。设置会按绑定群组持久化保存。
 
 - **查看状态**：`/terralink status`
-- **开关事件转发**：`/terralink event <on/off>`
+- **开关事件转发**：`/terralink event <on/off>`（系统播报总开关）
+- **按分类开关事件转发**：`/terralink filter <分类/all> <on/off>`
 - **开关完整桥接**：`/terralink bridge <on/off>`
 - **开关 Bot 到服务器聊天**：`/terralink group <on/off>`
-- **开关服务器到 Bot 聊天**：`/terralink server <on/off>`
+- **开关服务器到 Bot 聊天**：`/terralink server <on/off>`（服务器到 Bot 方向的所有消息）
 - **重置桥接设置**：`/terralink reset`
 - **别名**：`tl`、`群服管理`
+
+`filter` 可用的播报分类（需要 TerraNoneBridge 0.9.0 及以上）：
+
+| 分类 | 说明 |
+| --- | --- |
+| `join_leave` | 玩家加入/离开 |
+| `death` | 玩家死亡（含其他模组自定义的死亡原因） |
+| `boss` | Boss 苏醒/被打败及 Boss 预警 |
+| `event` | 入侵、血月/日食、陨石、世界进度（如“四面回荡着尖叫声...”）、玩家传送等原版事件 |
+| `npc` | 城镇 NPC 到达、死亡与离开 |
+| `mod` | 其他模组发出的全服播报（如伤害统计、自动钓鱼机提示） |
+| `server` | 服务器启停通知与控制台 `say` 消息 |
+
+服务器管理员也可以直接在[模组配置](https://github.com/newcovid/TerraNoneBridge/blob/master/README_CN.md#配置) `ModConfigs/TerraNoneBridge_ServerConfig.json` 中从源头关闭：`EnableChatSync` 控制玩家聊天双向互通，`EnableEventBroadcast` 为系统播报总开关，`Broadcast*` 系列开关按上述分类过滤，`BlockedKeywords` 可屏蔽包含指定关键词的消息。游戏内聊天中的物品、颜色等标签会在服务端转换为可读文本后再转发。
 
 ### 管理指令
 

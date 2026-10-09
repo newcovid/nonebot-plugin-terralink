@@ -1,6 +1,6 @@
 [project]
 name = "nonebot-plugin-terralink"
-version = "0.5.0"
+version = "0.6.0"
 description = "将 Terraria tModLoader 服务器接入 NoneBot2 机器人生态的双向通信与运维插件"
 authors = [
     { name = "newcovid", email = "280310454@qq.com" },

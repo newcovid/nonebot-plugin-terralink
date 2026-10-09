@@ -69,12 +69,26 @@
 服务端主动推送的消息，无需请求 ID。
 
 ### 4.1 聊天消息同步 (`chat`)
-当游戏内玩家发送消息时触发。
+当游戏内玩家发送消息，或服务器广播系统消息 (Boss、入侵、死亡等) 时触发。
 
 **数据结构:**
 * **user_name**: 发送者名称 (系统消息通常为 "Server")
-* **message**: 消息内容
+* **message**: 消息内容。物品 (`[i:...]`)、颜色 (`[c/...:...]`) 等聊天标签已转换为可读文本，例如 `[传奇 天顶剑]`。
 * **color**: 消息颜色的 16 进制代码
+* **category**: 消息分类 (模组 0.9.0 起提供，旧版本不携带)
+
+| category | 说明 |
+| --- | --- |
+| `chat` | 玩家聊天 |
+| `join_leave` | 玩家加入/离开 |
+| `death` | 玩家死亡 |
+| `boss` | Boss 苏醒/被打败及 Boss 预警 |
+| `event` | 入侵、天象、世界进度、传送等原版事件 |
+| `npc` | 城镇 NPC 到达/死亡/离开 |
+| `mod` | 其他模组发出的播报 |
+| `server` | 控制台 `say` 消息 |
+
+在模组配置中被关闭的消息 (`EnableChatSync`、`EnableEventBroadcast`、`Broadcast*`、`BlockedKeywords`) 不会发送。
 
 **示例:**
 ```json
@@ -83,6 +97,7 @@
   "user_name": "TerrarianPlayer",
   "message": "Hello from Terraria!",
   "color": "32FF82",
+  "category": "chat",
   "timestamp": 1715000200
 }
 ```

@@ -8,7 +8,12 @@ from nonebot.permission import SUPERUSER
 
 from ..core.connection import manager, Session
 from ..core.models import CommandResponsePacket
-from ..services.group_settings import GroupSettings, group_settings
+from ..services.group_settings import (
+    BROADCAST_CATEGORIES,
+    GroupSettings,
+    group_settings,
+    resolve_category,
+)
 
 # --- 辅助函数 ---
 
@@ -58,11 +63,27 @@ def _format_switch(enabled: bool) -> str:
 
 
 def _format_group_settings(settings: GroupSettings) -> str:
+    disabled = "、".join(
+        label
+        for category, label in BROADCAST_CATEGORIES.items()
+        if category in settings.disabled_categories
+    )
     return (
         "TerraLink 群管理状态:\n"
         f"- 事件播报: {_format_switch(settings.event_broadcast)}\n"
+        f"  已关闭分类: {disabled or '无'}\n"
         f"- 群 -> 服聊天: {_format_switch(settings.group_to_server)}\n"
         f"- 服 -> 群聊天: {_format_switch(settings.server_to_group)}"
+    )
+
+
+def _format_filter_usage() -> str:
+    categories = "\n".join(
+        f"  {category} - {label}" for category, label in BROADCAST_CATEGORIES.items()
+    )
+    return (
+        "用法: /terralink filter <分类/all> <on/off>\n"
+        f"可用分类:\n{categories}"
     )
 
 
@@ -102,6 +123,26 @@ async def _(event: GroupMessageEvent, args: Message = CommandArg()):
             )
             await manage.finish(_format_group_settings(settings))
 
+        if action in {"filter", "过滤", "分类"}:
+            if len(params) < 3:
+                await manage.finish(_format_filter_usage())
+            enabled = _parse_switch(params[2])
+            if params[1].lower() in {"all", "全部"}:
+                settings = group_settings.update(
+                    event.group_id,
+                    disabled_categories=[] if enabled else list(BROADCAST_CATEGORIES),
+                )
+            else:
+                category = resolve_category(params[1])
+                if category is None:
+                    await manage.finish(
+                        f"未知分类: {params[1]}\n" + _format_filter_usage()
+                    )
+                settings = group_settings.set_category(
+                    event.group_id, category, enabled
+                )
+            await manage.finish(_format_group_settings(settings))
+
         if action in {"bridge", "chat", "互通", "聊天"}:
             if len(params) < 2:
                 await manage.finish("用法: /terralink bridge <on/off>")
@@ -139,7 +180,8 @@ async def _(event: GroupMessageEvent, args: Message = CommandArg()):
     await manage.finish(
         "用法:\n"
         "/terralink status - 查看状态\n"
-        "/terralink event <on/off> - 开关事件播报\n"
+        "/terralink event <on/off> - 开关事件播报 (总开关)\n"
+        "/terralink filter <分类/all> <on/off> - 按分类开关事件播报\n"
         "/terralink bridge <on/off> - 开关双向群服互通\n"
         "/terralink group <on/off> - 开关群到服聊天\n"
         "/terralink server <on/off> - 开关服到群聊天\n"

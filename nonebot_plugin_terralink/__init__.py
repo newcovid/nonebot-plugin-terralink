@@ -15,7 +15,7 @@ __plugin_meta__ = PluginMetadata(
         "【管理指令 (SuperUser)】\n"
         "/kick, /butcher, /give, /buff, /save, /settle, /time, /cmd\n\n"
         "【群管理指令 (SuperUser/群主/群管理员)】\n"
-        "/terralink status/event/bridge/group/server/reset\n\n"
+        "/terralink status/event/filter/bridge/group/server/reset\n\n"
         "【查询指令】\n"
         "/list, /tps, /boss, /inv, /search, /query, /help"
     ),
