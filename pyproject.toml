@@ -10,7 +10,6 @@ requires-python = ">=3.9"
 license = "GPL-3.0-only"
 keywords = ["nonebot2", "terraria", "tmodloader", "game-server", "integration", "websocket"]
 classifiers = [
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
